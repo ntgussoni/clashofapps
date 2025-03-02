@@ -1,10 +1,19 @@
-import NextAuth from "next-auth";
-import { cache } from "react";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { db } from "../db";
+import { nextCookies } from "better-auth/next-js";
+import { admin, magicLink } from "better-auth/plugins";
+import { sendMagicLink } from "../emails/send-magic-link";
 
-import { authConfig } from "./config";
-
-const { auth: uncachedAuth, handlers, signIn, signOut } = NextAuth(authConfig);
-
-const auth = cache(uncachedAuth);
-
-export { auth, handlers, signIn, signOut };
+export const auth = betterAuth({
+  database: prismaAdapter(db, {
+    provider: "postgresql", // or "mysql", "postgresql", ...etc
+  }),
+  plugins: [
+    admin(),
+    magicLink({
+      sendMagicLink,
+    }),
+    nextCookies(),
+  ],
+});
