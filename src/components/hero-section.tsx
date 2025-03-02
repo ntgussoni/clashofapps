@@ -1,129 +1,85 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Plus, X, ArrowRight, Loader2 } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, ArrowRight } from "lucide-react";
 
 interface HeroSectionProps {
-  onStartComparison: (links: string[]) => void
-  isComparing: boolean
+  onStartComparison: (links: string[]) => void;
+  isComparing: boolean;
 }
 
-export function HeroSection({ onStartComparison, isComparing }: HeroSectionProps) {
-  const [links, setLinks] = useState<string[]>([""])
-  const [isValidating, setIsValidating] = useState(false)
+export function HeroSection({
+  onStartComparison,
+  isComparing,
+}: HeroSectionProps) {
+  const [links, setLinks] = useState<string[]>([""]);
 
   const handleAddLink = () => {
-    setLinks([...links, ""])
-  }
-
-  const handleRemoveLink = (index: number) => {
-    const newLinks = links.filter((_, i) => i !== index)
-    setLinks(newLinks.length ? newLinks : [""])
-  }
+    setLinks([...links, ""]);
+  };
 
   const handleLinkChange = (index: number, value: string) => {
-    const newLinks = [...links]
-    newLinks[index] = value
-    setLinks(newLinks)
-  }
+    const newLinks = [...links];
+    newLinks[index] = value;
+    setLinks(newLinks);
+  };
 
-  const handleCompare = async () => {
-    setIsValidating(true)
-    // Simulate link validation
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsValidating(false)
-    onStartComparison(links)
-  }
-
-  const isValidGooglePlayLink = (link: string) => {
-    return link.trim().startsWith("https://play.google.com/store/apps/")
-  }
-
-  const allLinksValid = links.every((link) => isValidGooglePlayLink(link))
-  const atLeastTwoLinks = links.filter((link) => link.trim()).length >= 2
+  const handleCompare = () => {
+    onStartComparison(links);
+  };
 
   return (
-    <section className={`relative transition-all duration-500 ${isComparing ? "py-8" : "py-20 md:py-28"}`}>
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-      <div className="container px-4 md:px-6 relative">
-        <div className="flex flex-col items-center text-center space-y-4 mb-8">
-          <div className="space-y-2">
-            <h1
-              className={`transition-all duration-500 ${
-                isComparing
-                  ? "text-2xl md:text-3xl font-bold"
-                  : "text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl"
-              }`}
-            >
-              Compare Any Apps with AI
-            </h1>
-            {!isComparing && (
-              <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                Paste Google Play Store links below and let our AI analyze and compare the apps for you.
-              </p>
-            )}
+    <section className="relative py-20 md:py-32">
+      <div className="container px-4 md:px-6">
+        <div className="mx-auto flex max-w-3xl flex-col items-center space-y-8 text-center">
+          <div className="inline-flex items-center rounded-full bg-[#E8F5E9] px-3 py-1 text-sm text-[#01875f]">
+            AI-Powered App Analysis
           </div>
-        </div>
 
-        {!isComparing && (
-          <div className="max-w-3xl mx-auto space-y-4">
+          <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
+            Compare <span className="text-[#01875f]">Any Apps</span>{" "}
+            <span className="text-[#4285F4]">with AI</span>
+          </h1>
+
+          <p className="max-w-2xl text-lg text-muted-foreground">
+            Paste Google Play Store links below and let our AI analyze and
+            compare the apps for you.
+          </p>
+
+          <div className="w-full space-y-4">
             {links.map((link, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="Paste Google Play Store link here..."
-                  value={link}
-                  onChange={(e) => handleLinkChange(index, e.target.value)}
-                  className={`flex-1 ${link && !isValidGooglePlayLink(link) ? "border-red-500" : ""}`}
-                />
-                {links.length > 1 && (
-                  <Button variant="outline" size="icon" onClick={() => handleRemoveLink(index)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <Input
+                key={index}
+                placeholder="Paste Google Play Store link here..."
+                value={link}
+                onChange={(e) => handleLinkChange(index, e.target.value)}
+                className="w-full border-gray-200 bg-white focus:border-[#01875f] focus:ring-[#01875f]"
+              />
             ))}
 
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <Button
                 variant="outline"
                 onClick={handleAddLink}
-                disabled={links.length >= 5}
-                className="w-full sm:w-auto"
+                className="group border-gray-200 text-gray-700 hover:bg-gray-50"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Add Another App
               </Button>
+
               <Button
                 onClick={handleCompare}
-                disabled={!allLinksValid || !atLeastTwoLinks || isValidating}
-                className="w-full sm:w-auto"
+                className="bg-[#01875f] text-white hover:bg-[#017552]"
               >
-                {isValidating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Validating Links...
-                  </>
-                ) : (
-                  <>
-                    Compare Apps
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
+                Compare Apps
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
-
-            <div className="text-sm text-muted-foreground text-center">
-              {links.some((link) => link && !isValidGooglePlayLink(link)) && (
-                <p className="text-red-500">Please enter valid Google Play Store links</p>
-              )}
-              {!atLeastTwoLinks && links.some((link) => link.trim()) && <p>Add at least two apps to compare</p>}
-            </div>
           </div>
-        )}
+        </div>
       </div>
     </section>
-  )
+  );
 }
-
