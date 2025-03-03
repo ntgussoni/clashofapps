@@ -26,7 +26,7 @@ export const reviewInsightSchema = z.object({
       z.object({
         name: z.string().describe("The feature being mentioned"),
         sentiment: sentimentSchema.describe(
-          "The sentiment about this specific feature"
+          "The sentiment about this specific feature",
         ),
         quote: z
           .string()
@@ -36,10 +36,10 @@ export const reviewInsightSchema = z.object({
           .enum(["leader", "parity", "laggard"])
           .optional()
           .describe("How this feature compares to industry standards"),
-      })
+      }),
     )
     .describe(
-      "Features mentioned in the review with their associated sentiment"
+      "Features mentioned in the review with their associated sentiment",
     ),
   issues: z
     .array(
@@ -50,7 +50,7 @@ export const reviewInsightSchema = z.object({
           .enum(["low", "medium", "high"])
           .describe("How severe is this issue to the user"),
         impact: z.string().optional().describe("Business impact of this issue"),
-      })
+      }),
     )
     .optional()
     .describe("Any issues or problems mentioned in the review"),
@@ -116,7 +116,7 @@ export const appAnalysisSchema = z.object({
         improvementPriority: z
           .enum(["low", "medium", "high"])
           .describe("Priority for improvement"),
-      })
+      }),
     )
     .describe("Analysis of major features mentioned in reviews"),
   userSegments: z
@@ -142,11 +142,15 @@ export const appAnalysisSchema = z.object({
         retentionRisk: z
           .enum(["low", "medium", "high"])
           .describe("Risk of churning"),
-      })
+      }),
     )
+    .default([])
+    .optional()
     .describe("Different user segments identified from review analysis"),
   competitiveInsights: z
     .array(z.string())
+    .default([])
+    .optional()
     .describe("Key insights about competitive positioning"),
   pricingPerception: z
     .object({
@@ -176,8 +180,9 @@ export const appAnalysisSchema = z.object({
           .string()
           .optional()
           .describe("Target user segment if applicable"),
-      })
+      }),
     )
+    .default([])
     .describe("Recommended actions based on review analysis"),
 });
 
@@ -195,14 +200,14 @@ export const competitiveAdvantagesSchema = z.object({
   competitiveAdvantages: z
     .record(
       z.string(), // App ID or name
-      z.array(z.string()) // List of advantages
+      z.array(z.string()), // List of advantages
     )
     .describe("Key advantages each app has according to reviews")
     .default({}),
   uniqueSellingPropositions: z
     .record(
       z.string(), // App ID or name
-      z.array(z.string()) // List of USPs
+      z.array(z.string()), // List of USPs
     )
     .describe("Unique selling propositions of each app")
     .default({}),
@@ -216,7 +221,7 @@ export const featureComparisonSchema = z.object({
         ratings: z
           .record(
             z.string(), // App ID or name
-            z.number().min(-1).max(1) // Sentiment rating from -1 to 1
+            z.number().min(-1).max(1), // Sentiment rating from -1 to 1
           )
           .describe("Rating of this feature for each app"),
         insights: z
@@ -229,7 +234,7 @@ export const featureComparisonSchema = z.object({
           .string()
           .optional()
           .describe("Any noticeable trends in this feature area"),
-      })
+      }),
     )
     .describe("Comparison of key features across apps"),
 });
@@ -246,7 +251,7 @@ export const sentimentComparisonSchema = z.object({
         trend: z
           .enum(["improving", "stable", "declining", "unknown"])
           .describe("Sentiment trend"),
-      })
+      }),
     )
     .describe("Comparison of sentiment across apps"),
 });
@@ -263,7 +268,7 @@ export const marketGapsSchema = z.object({
         competitiveBarrier: z
           .enum(["low", "medium", "high"])
           .describe("Barrier to entry"),
-      })
+      }),
     )
     .describe("Identified gaps in the market that represent opportunities"),
 });
@@ -278,7 +283,7 @@ export const userSegmentAnalysisSchema = z.object({
         growthPotential: z
           .enum(["low", "medium", "high"])
           .describe("Growth potential of this segment"),
-      })
+      }),
     )
     .describe("Analysis of different user segments and their preferences"),
 });
@@ -316,7 +321,7 @@ export const recommendationsSchema = z.object({
         potentialImpact: z
           .enum(["low", "medium", "high"])
           .describe("Potential competitive impact"),
-      })
+      }),
     )
     .describe("Recommended actions based on competitive analysis"),
 });

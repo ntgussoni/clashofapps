@@ -21,17 +21,6 @@ export interface AnalysisResultsData {
   }[];
 }
 
-export interface AppInfoData {
-  appId: string;
-  appName: string;
-  icon: string;
-  rating: number | string;
-  reviewCount: number;
-  installs: string;
-  version: string;
-  categories: string[];
-}
-
 export interface ComparisonResultsData {
   apps: {
     appId: string;

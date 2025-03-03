@@ -12,7 +12,6 @@ import {
   type CompetitorAnalysis,
 } from "@/server/review-analyzer/types";
 import type {
-  AppInfoData,
   AnalysisResultsData,
   ComparisonResultsData,
 } from "@/components/types";
@@ -30,6 +29,7 @@ import { siteConfig } from "@/lib/config";
 import SkeletonAppInfoCard from "@/components/chat/SkeletonAppInfoCard";
 import SkeletonAnalysisCard from "@/components/chat/SkeletonAnalysisCard";
 import SkeletonComparisonSection from "@/components/chat/SkeletonComparisonSection";
+import { App } from "@prisma/client";
 
 // Define types for the data stream items
 type StatusDataItem = {
@@ -39,10 +39,8 @@ type StatusDataItem = {
 };
 
 // Extend the AppInfo type to match what comes from the server
-interface AppInfoWithIcon extends AppInfo {
-  icon: string;
-  rating: number | string;
-  reviewCount: number;
+interface AppInfoWithIcon extends App {
+  type: "app_info";
 }
 
 // Type for the data we receive from the server
@@ -251,7 +249,7 @@ export default function CompareApps() {
           }
           case "app_info": {
             // Batch app info updates instead of immediate state update
-            const appInfo = dataItem as AppInfoWithIcon & { type: string };
+            const appInfo = dataItem as AppInfoWithIcon;
             setLoadingAppInfo(false);
 
             setPendingAppInfos((prev) => {
@@ -351,10 +349,7 @@ export default function CompareApps() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* Actual app info cards */}
             {appInfos.map((appInfo) => (
-              <MemoizedAppInfoCard
-                key={appInfo.appId}
-                appInfo={appInfo as unknown as AppInfoData}
-              />
+              <MemoizedAppInfoCard key={appInfo.appId} appInfo={appInfo} />
             ))}
 
             {/* Skeleton app info cards for loading apps */}
@@ -377,10 +372,10 @@ export default function CompareApps() {
           <div className="overflow-x-auto">
             <div className="flex min-w-full space-x-6 pb-2">
               {/* For each app, show a column of analysis results */}
-              {analysisResults.map((result) => (
+              {analysisResults.map((result, index) => (
                 <MemoizedAnalysisCard
-                  key={result.appName}
-                  result={result as unknown as AnalysisResultsData}
+                  key={`analysis-${result.appName}-${index}`}
+                  result={result}
                 />
               ))}
 

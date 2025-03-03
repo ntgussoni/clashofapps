@@ -15,7 +15,7 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String     @id
   name          String
   email         String
   emailVerified Boolean
@@ -24,6 +24,7 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  analyses      Analysis[]
 
   role       String?
   banned     Boolean?
@@ -79,4 +80,172 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+// New models for app analysis system
+
+// Raw app data from Google Play
+model App {
+  id    String @id @default(cuid())
+  appId String @unique // Google Play app ID (e.g., com.example.app)
+
+  // Core app metadata
+  name        String
+  icon        String
+  developer   String
+  categories  Json // Array of categories
+  description String @db.Text
+
+  // Stats and ratings
+  score     Float
+  ratings   Int
+  reviews   Int
+  histogram Json // { "1": n, "2": n, "3": n, "4": n, "5": n }
+  installs  String
+  version   String?
+
+  // Complete raw data
+  rawData Json // Complete IAppItemFullDetail as JSON
+
+  // Tracking fields
+  lastFetched DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  appReviews   AppReview[]
+  appAnalyses  AppAnalysisData[]
+  analysisApps AnalysisApp[]
+}
+
+// Reviews for an app
+model AppReview {
+  id       String @id @default(cuid())
+  reviewId String // Original review ID from Google Play
+
+  // Review content
+  userName  String
+  userImage String?
+  date      String
+  score     Int
+  title     String?
+  text      String  @db.Text
+  thumbsUp  Int?
+  version   String?
+
+  // Raw data storage
+  rawData Json // Complete IReviewsItem as JSON
+
+  // Relationships
+  appId String
+  app   App    @relation(fields: [appId], references: [appId], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([appId, reviewId])
+  @@index([appId])
+}
+
+// User-created analyses
+model Analysis {
+  id          String  @id @default(cuid())
+  title       String?
+  description String? @db.Text
+
+  // Analysis metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User relationship
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Analysis apps and results
+  analysisApps   AnalysisApp[]
+  singleAnalyses AppAnalysisData[]
+  comparison     ComparisonData?
+
+  // Analysis configuration
+  analysisDepth String @default("detailed")
+  reviewSample  Int    @default(50)
+
+  @@index([userId])
+}
+
+// Junction table for Analysis to App relationship
+model AnalysisApp {
+  id String @id @default(cuid())
+
+  // References
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  appId      String
+  app        App      @relation(fields: [appId], references: [appId], onDelete: Cascade)
+
+  // Is this the main app being analyzed?
+  isMainApp Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([analysisId, appId])
+  @@index([analysisId])
+  @@index([appId])
+}
+
+// Single app analysis results
+model AppAnalysisData {
+  id String @id @default(cuid())
+
+  // References
+  appId      String
+  app        App      @relation(fields: [appId], references: [appId], onDelete: Cascade)
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  // Core analysis results (matches AnalysisResultsData)
+  strengths        Json // String array
+  weaknesses       Json // String array
+  marketPosition   String @db.Text
+  userDemographics String @db.Text
+  topFeatures      Json // Array of feature objects with sentiment/mentions
+  pricing          Json // Pricing object with valueForMoney, complaints, willingness
+  recommendations  Json // Array of recommendation objects
+
+  // Complete raw analysis
+  rawAnalysis Json // Complete analysis JSON
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([analysisId, appId])
+  @@index([appId])
+  @@index([analysisId])
+}
+
+// Comparison analysis results
+model ComparisonData {
+  id String @id @default(cuid())
+
+  // Reference to the main analysis
+  analysisId String   @unique
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  // Comparison data fields (matches ComparisonData from route.ts)
+  apps                     Json // Array of app summary objects
+  featureComparison        Json // Feature comparison data
+  strengthsComparison      Json // Strengths comparison
+  weaknessesComparison     Json // Weaknesses comparison
+  marketPositionComparison Json // Market positions
+  pricingComparison        Json // Pricing comparison
+  userBaseComparison       Json // User demographics comparison
+  recommendationSummary    Json // Array of recommendations
+
+  // Complete raw comparison data
+  rawComparisonData Json // Complete comparison data
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

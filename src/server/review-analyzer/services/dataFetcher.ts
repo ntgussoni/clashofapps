@@ -1,6 +1,8 @@
 import gplay from "google-play-scraper";
 import type * as Gplay from "google-play-scraper";
-import { AppInfo } from "../types";
+import { AppInfo, Review } from "../types";
+
+const googlePlayScraper = gplay as unknown as Gplay.IMemoizedResult;
 
 /**
  * Fetches app details and reviews for analysis
@@ -10,28 +12,31 @@ import { AppInfo } from "../types";
  */
 export async function fetchAppData(
   appId: string,
-  reviewCount: number = 100
-): Promise<AppInfo> {
+  reviewCount = 100,
+): Promise<{
+  appInfo: AppInfo;
+  reviews: Review[];
+}> {
   try {
     console.log(`Fetching data for app: ${appId}`);
 
     // Get app details
-    const appDetails = await (gplay as Gplay.IMemoizedResult).app({ appId });
+    const appDetails = await googlePlayScraper.app({ appId });
 
     // Get reviews
-    const reviewsResult = await gplay.reviews({
+    const reviewsResult = await googlePlayScraper.reviews({
       appId,
       num: reviewCount,
-      sort: gplay.sort.NEWEST,
+      sort: googlePlayScraper.sort.NEWEST,
     });
 
     // Get historical reviews (if available) to analyze trends
     let olderReviews: typeof reviewsResult.data = [];
     try {
-      const olderReviewsResult = await gplay.reviews({
+      const olderReviewsResult = await googlePlayScraper.reviews({
         appId,
         num: Math.min(50, reviewCount / 2),
-        sort: gplay.sort.HELPFULNESS,
+        sort: googlePlayScraper.sort.HELPFULNESS,
       });
       olderReviews = olderReviewsResult.data;
     } catch (_) {
@@ -50,18 +55,8 @@ export async function fetchAppData(
     });
 
     return {
-      appId,
-      appName: appDetails.title,
-      appIcon: appDetails.icon,
+      appInfo: appDetails,
       reviews: combinedReviews,
-      categories: Array.isArray(appDetails.genre)
-        ? appDetails.genre
-        : [appDetails.genre],
-      appDescription: appDetails.summary || appDetails.description || "",
-      appScore: appDetails.score || 0,
-      installs: appDetails.installs || "Unknown",
-      version: appDetails.version || "Unknown",
-      updated: new Date(appDetails.updated || Date.now()),
     };
   } catch (error) {
     console.error(`Error fetching data for ${appId}:`, error);

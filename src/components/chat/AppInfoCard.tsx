@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
-import type { AppInfoData } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StarIcon, DownloadIcon, TagIcon, InfoIcon } from "lucide-react";
+import { App } from "@prisma/client";
 
 interface AppInfoCardProps {
-  appInfo: AppInfoData;
+  appInfo: App;
 }
 
 export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
@@ -33,7 +33,7 @@ export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
                 <div className="min-h-10 min-w-10 overflow-hidden rounded-md border">
                   <Image
                     src={appInfo.icon}
-                    alt={`${appInfo.appName} icon`}
+                    alt={`${appInfo.name} icon`}
                     width={40}
                     height={40}
                     className="h-10 w-10 object-cover"
@@ -42,7 +42,7 @@ export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
               )}
               <div>
                 <CardTitle className="text-lg font-medium">
-                  {appInfo.appName}
+                  {appInfo.name}
                 </CardTitle>
                 <p className="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
                   {appInfo.appId}
@@ -52,16 +52,15 @@ export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
             <div className="flex items-center">
               <StarIcon className="mr-1 h-3 w-3 text-amber-500" />
               <span
-                className={`text-sm font-medium ${getRatingColorClass(appInfo.rating)}`}
+                className={`text-sm font-medium ${getRatingColorClass(appInfo.score)}`}
               >
-                {typeof appInfo.rating === "number"
-                  ? appInfo.rating.toFixed(1)
-                  : Number(appInfo.rating).toFixed(1)}
+                {typeof appInfo.score === "number"
+                  ? appInfo.score.toFixed(1)
+                  : Number(appInfo.score).toFixed(1)}
               </span>
             </div>
           </div>
         </CardHeader>
-
         <CardContent className="p-3">
           {/* Stats */}
           <div className="mb-3 grid grid-cols-2 gap-3">
@@ -71,7 +70,7 @@ export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
                 <span>Reviews</span>
               </div>
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {appInfo.reviewCount.toLocaleString()}
+                {appInfo.reviews}
               </p>
             </div>
             <div className="rounded-md border p-2">
@@ -103,13 +102,15 @@ export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
               <span>Categories</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {appInfo.categories.map((category, index) => (
+              {(
+                (appInfo.categories as { id: string; name: string }[]) ?? []
+              ).map((category) => (
                 <Badge
-                  key={index}
+                  key={category.id}
                   variant="outline"
                   className="px-1.5 py-0 text-xs"
                 >
-                  {category}
+                  {category.name}
                 </Badge>
               ))}
             </div>

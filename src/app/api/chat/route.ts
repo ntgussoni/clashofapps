@@ -1,6 +1,10 @@
 import { fetchAppData } from "../../../server/review-analyzer/services/dataFetcher";
-import { analyzeReviews } from "../../../server/review-analyzer/services/reviewAnalyzer";
+import {
+  analyzeAppReviews,
+  type AnalysisUpdate,
+} from "../../../server/review-analyzer/services/reviewAnalyzer";
 import { createDataStreamResponse, streamText } from "ai";
+import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { NextRequest } from "next/server";
 import type {
@@ -8,6 +12,17 @@ import type {
   AppAnalysis,
 } from "../../../server/review-analyzer/types";
 import type { JSONValue } from "ai";
+import {
+  getAppFromDb,
+  storeAppData,
+  storeAnalysisResults,
+  storeComparisonResults,
+  getAnalysisResultsFromDb,
+  getComparisonResultsFromDb,
+} from "@/server/review-analyzer/services/dbService";
+import { auth } from "@/server/auth";
+import { App } from "@prisma/client";
+import { z } from "zod";
 
 // Define a type for our data stream
 interface DataStream {
@@ -16,12 +31,12 @@ interface DataStream {
 
 // Define interfaces for our data structures
 interface AppAnalysisResult {
-  appInfo: AppInfo;
+  appInfo: App;
   analysis: AppAnalysis;
   analysisResults: AnalysisResultsData;
 }
 
-interface AnalysisResultsData {
+export interface AnalysisResultsData {
   type: string;
   appId: string;
   appName: string;
@@ -60,7 +75,7 @@ interface FeatureComparisonItem {
   presentInApps: string[];
 }
 
-interface ComparisonData {
+export interface ComparisonData {
   type: string;
   apps: {
     appName: string;
@@ -87,6 +102,32 @@ interface ComparisonData {
   userBaseComparison: { appName: string; demographics: string }[];
   recommendationSummary: string[];
 }
+
+// Define schema for AI-generated recommendations
+const actionStepSchema = z.object({
+  step: z.number().min(1).max(7),
+  title: z.string().describe("A concise, action-oriented title for this step"),
+  description: z
+    .string()
+    .describe(
+      "A detailed explanation of what to do and why this step is important",
+    ),
+  priorityLevel: z
+    .enum(["Critical", "High", "Medium", "Low"])
+    .describe("The priority level of this action step"),
+});
+
+type ActionStep = z.infer<typeof actionStepSchema>;
+
+const recommendationSchema = z.object({
+  actionPlan: z
+    .array(actionStepSchema)
+    .describe(
+      "A comprehensive, step-by-step action plan for creating a superior app",
+    ),
+});
+
+type RecommendationResponse = z.infer<typeof recommendationSchema>;
 
 // Helper function to safely serialize data for the data stream
 function safeSerialize<T>(data: T): JSONValue {
@@ -224,10 +265,10 @@ async function generateComparison(
   const comparisonData: ComparisonData = {
     type: "comparison_results",
     apps: appAnalyses.map((analysis) => ({
-      appName: analysis.appInfo.appName,
+      appName: analysis.appInfo.name,
       appId: analysis.appInfo.appId,
-      rating: analysis.appInfo.appScore.toFixed(1),
-      ratingCount: analysis.appInfo.reviews.length,
+      rating: analysis.appInfo.score.toFixed(1),
+      ratingCount: analysis.appInfo.reviews,
     })),
     featureComparison: compareFeatures(appAnalyses),
     strengthsComparison: compareStrengths(appAnalyses),
@@ -235,10 +276,108 @@ async function generateComparison(
     marketPositionComparison: compareMarketPosition(appAnalyses),
     pricingComparison: comparePricing(appAnalyses),
     userBaseComparison: compareUserBase(appAnalyses),
-    recommendationSummary: generateRecommendationSummary(appAnalyses),
+    recommendationSummary: await generateAIRecommendations(appAnalyses),
   };
 
   return comparisonData;
+}
+
+// Function to generate AI-driven recommendations
+async function generateAIRecommendations(
+  appAnalyses: AppAnalysisResult[],
+): Promise<string[]> {
+  if (appAnalyses.length === 0) {
+    return [];
+  }
+
+  // Prepare data for the AI
+  const appSummaries = appAnalyses.map((app) => ({
+    name: app.appInfo.name,
+    rating: app.appInfo.score,
+    strengths: app.analysis.overview.strengths,
+    weaknesses: app.analysis.overview.weaknesses,
+    topFeatures: app.analysis.featureAnalysis.map((f) => ({
+      feature: f.feature,
+      sentiment: f.sentimentScore,
+      mentions: f.mentionCount,
+    })),
+    marketPosition: app.analysis.overview.marketPosition,
+    targetDemographic: app.analysis.overview.targetDemographic,
+    pricingPerception: {
+      valueForMoney: app.analysis.pricingPerception.valueForMoney,
+      pricingComplaints: app.analysis.pricingPerception.pricingComplaints,
+      willingness: app.analysis.pricingPerception.willingness,
+    },
+  }));
+
+  // Common strengths and weaknesses
+  const commonStrengths = compareStrengths(appAnalyses).common.map(
+    (s) => s.strength,
+  );
+  const commonWeaknesses = compareWeaknesses(appAnalyses).common.map(
+    (w) => w.weakness,
+  );
+
+  // Feature information
+  const featureComparison = compareFeatures(appAnalyses);
+
+  // Create prompt for AI
+  const prompt = `
+As a product strategy expert, create a detailed 7-step action plan for building a superior mobile app that outperforms the following analyzed apps: ${appAnalyses.map((a) => a.appInfo.name).join(", ")}.
+
+Here's a comprehensive analysis of these apps:
+
+APP INFORMATION:
+${JSON.stringify(appSummaries, null, 2)}
+
+COMMON STRENGTHS ACROSS APPS:
+${JSON.stringify(commonStrengths, null, 2)}
+
+COMMON WEAKNESSES ACROSS APPS:
+${JSON.stringify(commonWeaknesses, null, 2)}
+
+FEATURE COMPARISON:
+${JSON.stringify(featureComparison.slice(0, 5), null, 2)}
+
+Based on this analysis, create a strategic 7-step action plan that would help entrepreneurs build a better app than any of these. Each step should be specific, actionable, and focused on creating competitive advantages. The steps should cover:
+
+1. Key strengths to incorporate
+2. Industry-wide pain points to solve
+3. Features to prioritize
+4. Target demographics to focus on
+5. Pricing strategy recommendations
+6. Market positioning guidance
+7. User experience design principles
+
+For each step, provide a concise title and a detailed explanation of what to do and why it matters.
+`;
+
+  try {
+    // Generate recommendations using AI
+    const model = openai("gpt-4o-mini");
+    const response = await generateObject<RecommendationResponse>({
+      model,
+      schema: recommendationSchema,
+      prompt,
+    });
+
+    // Format the response into strings for the UI
+    return response.object.actionPlan.map(
+      (step) => `STEP ${step.step}: ${step.title}. ${step.description}`,
+    );
+  } catch (error) {
+    console.error("Error generating AI recommendations:", error);
+    // Fallback with basic recommendations if AI generation fails
+    return [
+      "STEP 1: Identify and incorporate the top strengths from the highest-rated apps.",
+      "STEP 2: Address the common weaknesses found across all analyzed apps.",
+      "STEP 3: Prioritize the most highly rated features from user reviews.",
+      "STEP 4: Target underserved demographic segments identified in the analysis.",
+      "STEP 5: Develop a competitive pricing strategy based on user feedback.",
+      "STEP 6: Define a unique market position that differentiates from competitors.",
+      "STEP 7: Create a seamless user experience that addresses pain points.",
+    ];
+  }
 }
 
 // Helper functions for comparison
@@ -249,7 +388,7 @@ function compareFeatures(
   const allFeatures = new Map<string, FeatureData>();
 
   appAnalyses.forEach((analysis) => {
-    const appName = analysis.appInfo.appName;
+    const appName = analysis.appInfo.name;
     analysis.analysis.featureAnalysis.forEach((feature) => {
       const featureName = feature.feature.toLowerCase();
       if (!allFeatures.has(featureName)) {
@@ -281,7 +420,7 @@ function compareFeatures(
 function compareStrengths(appAnalyses: AppAnalysisResult[]): StrengthsResult {
   // Compare strengths across apps
   const appStrengths = appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.appName,
+    appName: analysis.appInfo.name,
     strengths: analysis.analysis.overview.strengths,
   }));
 
@@ -305,7 +444,7 @@ function compareStrengths(appAnalyses: AppAnalysisResult[]): StrengthsResult {
 function compareWeaknesses(appAnalyses: AppAnalysisResult[]): WeaknessesResult {
   // Compare weaknesses across apps
   const appWeaknesses = appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.appName,
+    appName: analysis.appInfo.name,
     weaknesses: analysis.analysis.overview.weaknesses,
   }));
 
@@ -329,7 +468,7 @@ function compareWeaknesses(appAnalyses: AppAnalysisResult[]): WeaknessesResult {
 function compareMarketPosition(appAnalyses: AppAnalysisResult[]) {
   // Return market position for each app
   return appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.appName,
+    appName: analysis.appInfo.name,
     marketPosition: analysis.analysis.overview.marketPosition,
   }));
 }
@@ -337,7 +476,7 @@ function compareMarketPosition(appAnalyses: AppAnalysisResult[]) {
 function comparePricing(appAnalyses: AppAnalysisResult[]) {
   // Compare pricing perception across apps
   return appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.appName,
+    appName: analysis.appInfo.name,
     valueForMoney: analysis.analysis.pricingPerception.valueForMoney,
     pricingComplaints: analysis.analysis.pricingPerception.pricingComplaints,
     willingness: analysis.analysis.pricingPerception.willingness,
@@ -347,65 +486,9 @@ function comparePricing(appAnalyses: AppAnalysisResult[]) {
 function compareUserBase(appAnalyses: AppAnalysisResult[]) {
   // Compare user demographics across apps
   return appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.appName,
+    appName: analysis.appInfo.name,
     demographics: analysis.analysis.overview.targetDemographic,
   }));
-}
-
-function generateRecommendationSummary(
-  appAnalyses: AppAnalysisResult[],
-): string[] {
-  // Generate recommendations based on the comparison
-  const recommendations: string[] = [];
-
-  if (appAnalyses.length === 0) {
-    return recommendations;
-  }
-
-  // Find the app with the highest rating
-  const highestRatedApp = [...appAnalyses].sort(
-    (a, b) => b.appInfo.appScore - a.appInfo.appScore,
-  )[0];
-
-  if (
-    highestRatedApp &&
-    highestRatedApp.analysis.overview.strengths.length > 0
-  ) {
-    const strengths = highestRatedApp.analysis.overview.strengths;
-    if (strengths.length > 0) {
-      recommendations.push(
-        `Focus on the strengths of ${
-          highestRatedApp.appInfo.appName
-        } such as ${strengths.join(" and ")}.`,
-      );
-    }
-  }
-
-  // Find common weaknesses to address
-  const commonWeaknesses = compareWeaknesses(appAnalyses).common;
-  if (commonWeaknesses.length > 0) {
-    recommendations.push(
-      `Address common weaknesses across all apps: ${commonWeaknesses
-        .map((w) => w.weakness)
-        .join(" and ")}.`,
-    );
-  }
-
-  // Find feature opportunities
-  const featureComparison = compareFeatures(appAnalyses);
-  const highSentimentFeatures = featureComparison.filter(
-    (f) => f.averageSentiment > 0.5,
-  );
-  if (highSentimentFeatures.length > 0) {
-    const feature = highSentimentFeatures[0];
-    if (feature) {
-      recommendations.push(
-        `Capitalize on highly rated features like "${feature.feature}" across all apps.`,
-      );
-    }
-  }
-
-  return recommendations;
 }
 
 // Extract all app IDs from previous messages
@@ -429,7 +512,7 @@ function generateSingleAppAnalysisText(appAnalysis: AppAnalysisResult): string {
   const { appInfo, analysis } = appAnalysis;
 
   return (
-    `## Analysis Results for ${appInfo.appName}\n\n` +
+    `## Analysis Results for ${appInfo.name}\n\n` +
     `### Strengths\n${analysis.overview.strengths
       .map((s: string) => `- ${s}`)
       .join("\n")}\n\n` +
@@ -468,7 +551,7 @@ function generateComparisonAnalysisText(
   appAnalyses: AppAnalysisResult[],
   comparisonData: ComparisonData,
 ): string {
-  const appNames = appAnalyses.map((a) => a.appInfo.appName).join(" vs ");
+  const appNames = appAnalyses.map((a) => a.appInfo.name).join(" vs ");
 
   return (
     `## Comparison Analysis: ${appNames}\n\n` +
@@ -476,9 +559,9 @@ function generateComparisonAnalysisText(
     appAnalyses
       .map(
         (a) =>
-          `**${a.appInfo.appName}**: ${a.appInfo.appScore.toFixed(
+          `**${a.appInfo.name}**: ${a.appInfo.score.toFixed(
             1,
-          )}/5 stars, ${a.appInfo.reviews.length} reviews`,
+          )}/5 stars, ${a.appInfo.reviews} reviews`,
       )
       .join("\n") +
     `\n\n### Common Strengths\n` +
@@ -496,7 +579,6 @@ function generateComparisonAnalysisText(
     `\n\n### Feature Comparison\n` +
     (comparisonData.featureComparison.length > 0
       ? comparisonData.featureComparison
-
           .map(
             (f) =>
               `- **${f.feature}**: Mentioned in ${(f.appCoverage * 100).toFixed(
@@ -525,45 +607,106 @@ function generateComparisonAnalysisText(
 async function processAppAnalysis(
   appId: string,
   dataStream: DataStream,
+  userId: string,
 ): Promise<AppAnalysisResult | null> {
   try {
     // Update status for this specific app
     sendStatus(dataStream, "analyzing", `Fetching data for app ${appId}...`);
 
-    // Fetch app data from Google Play
-    const appInfo = await fetchAppData(appId);
+    // Check if we have the app data in the database
+    let result = await getAppFromDb(appId);
 
+    if (!result) {
+      // If not in DB or data is stale, fetch from Google Play
+      const { appInfo, reviews } = await fetchAppData(appId);
+      // Store the app data in the database
+      await storeAppData(appInfo, reviews);
+      result = await getAppFromDb(appId);
+    }
+
+    if (!result) {
+      throw new Error("App not found. Something went wrong");
+    }
+
+    const { appInfo, reviews } = result;
     // Format the app info to display to user
     const appInfoSummary = {
       type: "app_info",
-      appName: appInfo.appName,
-      appId: appInfo.appId,
-      icon: appInfo.appIcon,
-      categories: appInfo.categories,
-      rating: appInfo.appScore.toFixed(1),
-      reviewCount: appInfo.reviews.length,
-      installs: appInfo.installs,
-      version: appInfo.version,
+      ...appInfo, // Include all fields from appInfo which follows the App model
     };
 
     // Send app info to the client
     dataStream.writeData(safeSerialize(appInfoSummary));
 
-    // Update status - be explicit about analyzing reviews
+    // Check if we have existing analysis results in the database
+    const existingAnalysis = await getAnalysisResultsFromDb(appId);
+
+    if (existingAnalysis) {
+      // If we have existing analysis, use it
+      sendStatus(
+        dataStream,
+        "processing",
+        `Retrieved existing analysis for ${appInfo.name}...`,
+      );
+
+      // Fill in the app name in the analysis results
+      existingAnalysis.analysisResults.appName = appInfo.name;
+
+      // Send the existing analysis results to the client
+      dataStream.writeData(safeSerialize(existingAnalysis.analysisResults));
+
+      // Return the existing analysis data
+      return {
+        appInfo,
+        analysis: existingAnalysis.analysis,
+        analysisResults: existingAnalysis.analysisResults,
+      };
+    }
+
+    // If no existing analysis, generate a new one
     sendStatus(
       dataStream,
-      "analyzing",
-      `Analyzing ${appInfo.reviews.length} reviews for ${appInfo.appName}...`,
+      "processing",
+      `Generating new analysis for ${appInfo.name}...`,
     );
 
-    // Analyze reviews
-    const analysis = await analyzeReviews(appInfo);
+    // Use the new generator function for analysis
+    const analysisGenerator = analyzeAppReviews(appInfo, reviews);
+
+    // Process each update from the generator
+    let analysis: AppAnalysis | null = null;
+
+    for await (const update of analysisGenerator) {
+      console.dir(update, { depth: null });
+      // Check if the update is a status/error update or the final analysis result
+      if ((update as AnalysisUpdate).type !== undefined) {
+        // It's a status update
+        const statusUpdate = update as AnalysisUpdate;
+        // Forward status updates to client
+        dataStream.writeData(
+          safeSerialize({
+            type: statusUpdate.type,
+            status: statusUpdate.status,
+            message: statusUpdate.message,
+            progress: statusUpdate.progress,
+            ...(statusUpdate.data ?? {}),
+          }),
+        );
+      } else {
+        // It's the final analysis
+        analysis = update as AppAnalysis;
+      }
+    }
+
+    if (!analysis) {
+      throw new Error("Analysis failed to complete");
+    }
 
     // Send analysis results as structured data
     const analysisResults: AnalysisResultsData = {
       type: "analysis_results",
       appId: appInfo.appId,
-      appName: appInfo.appName,
+      appName: appInfo.name,
       strengths: analysis.overview.strengths,
       weaknesses: analysis.overview.weaknesses,
       marketPosition: analysis.overview.marketPosition,
@@ -589,6 +732,11 @@ async function processAppAnalysis(
     // Send analysis to client as a serializable object
     dataStream.writeData(safeSerialize(analysisResults));
 
+    // Store the analysis results in the database
+    if (userId) {
+      await storeAnalysisResults(userId, appInfo, analysis, analysisResults);
+    }
+
     // Return the analysis data
     return {
       appInfo,
@@ -600,11 +748,9 @@ async function processAppAnalysis(
     sendStatus(
       dataStream,
       "error",
-      `Error analyzing app ${appId}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `Failed to analyze app ${appId}: ${(error as Error).message}`,
     );
-    return null; // Return null for failed analyses
+    return null;
   }
 }
 
@@ -613,6 +759,16 @@ export async function POST(req: NextRequest) {
     const { messages } = (await req.json()) as {
       messages: { role: string; content: string }[];
     };
+
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    if (!session) {
+      throw new Error("Unauthorized");
+    }
+
+    const userId = session.user.id;
 
     // Get the user's latest message
     const userMessage = messages[messages.length - 1];
@@ -648,11 +804,11 @@ export async function POST(req: NextRequest) {
           );
 
           // Store app info and analysis results for all apps
-          const appAnalyses: AppAnalysisResult[] = [];
+          let appAnalyses: AppAnalysisResult[] = [];
 
           // Process all apps in parallel
           const analysisPromises = newAppIds.map((appId) =>
-            processAppAnalysis(appId, dataStream),
+            processAppAnalysis(appId, dataStream, userId),
           );
 
           // Wait for all analyses to complete
@@ -673,8 +829,50 @@ export async function POST(req: NextRequest) {
               `Generating cross-app comparison for ${appAnalyses.length} apps...`,
             );
 
-            const comparisonData = await generateComparison(appAnalyses);
-            dataStream.writeData(safeSerialize(comparisonData));
+            // Check if we have existing comparison results in the database
+            const existingComparison =
+              await getComparisonResultsFromDb(allAppIds);
+
+            if (existingComparison) {
+              // If we have existing comparison, use it
+              sendStatus(
+                dataStream,
+                "processing",
+                `Retrieved existing comparison for ${appAnalyses.length} apps...`,
+              );
+
+              // Update app info in the comparison data
+              existingComparison.appAnalyses.forEach((analysis) => {
+                const matchingApp = appAnalyses.find(
+                  (app) => app.appInfo.appId === analysis.appInfo.appId,
+                );
+                if (matchingApp) {
+                  analysis.appInfo = matchingApp.appInfo;
+                  analysis.analysisResults.appName = matchingApp.appInfo.name;
+                }
+              });
+
+              // Send the existing comparison data to the client
+              dataStream.writeData(
+                safeSerialize(existingComparison.comparisonData),
+              );
+
+              // Replace appAnalyses with the data from the existing comparison
+              appAnalyses = existingComparison.appAnalyses;
+            } else {
+              // Generate new comparison
+              const comparisonData = await generateComparison(appAnalyses);
+              dataStream.writeData(safeSerialize(comparisonData));
+
+              // Store the comparison in the database
+              if (userId) {
+                await storeComparisonResults(
+                  userId || null,
+                  appAnalyses,
+                  comparisonData,
+                );
+              }
+            }
           }
 
           // Format analysis for AI summary
@@ -728,7 +926,7 @@ export async function POST(req: NextRequest) {
                 // When AI is done, send completed status
                 const appName =
                   appAnalyses.length > 0 && appAnalyses[0]
-                    ? appAnalyses[0].appInfo.appName
+                    ? appAnalyses[0].appInfo.name
                     : "apps";
 
                 sendStatus(

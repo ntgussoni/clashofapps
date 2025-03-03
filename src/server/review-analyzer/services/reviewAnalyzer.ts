@@ -1,412 +1,465 @@
-import { streamText, createDataStream } from "ai";
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { AppInfo, AppAnalysis, Review } from "../types";
+import type { AppAnalysis } from "../types";
 import { appAnalysisSchema } from "../schemas";
+import { App, AppReview } from "@prisma/client";
+import { z } from "zod";
 
 // Configure OpenAI
 const model = openai("gpt-4o-mini");
 
-/**
- * Analyzes a batch of reviews from a single app
- * @param appInfo - Object containing app information and reviews
- * @param sampleSize - Number of reviews to analyze (default: 50)
- * @param analysisDepth - Depth of analysis to perform (default: "detailed")
- * @returns Promise resolving to AppAnalysis result
- */
-export async function analyzeReviews(
-  appInfo: AppInfo,
-  sampleSize: number = 50,
-  analysisDepth: string = "detailed"
-): Promise<AppAnalysis> {
-  // Take a representative sample of reviews
-  const reviewSample = appInfo.reviews.slice(
-    0,
-    Math.min(sampleSize, appInfo.reviews.length)
-  );
+export type AnalysisUpdate = {
+  type: string;
+  status?: string;
+  message?: string;
+  progress?: number;
+  data?: Record<string, unknown>;
+};
 
-  console.log(
-    `Analyzing ${reviewSample.length} reviews for ${appInfo.appName}...`
-  );
-
-  // Categorize reviews by rating for more balanced analysis
-  const reviewsByRating: Record<number, Review[]> = {
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-  };
-
-  reviewSample.forEach((review) => {
-    const score = review.score || 3;
-    if (reviewsByRating[score]) {
-      reviewsByRating[score].push(review);
-    }
-  });
-
-  // Ensure we have a balanced sample that includes more critical reviews
-  const balancedSample: Review[] = [];
-  // Always include more low ratings for thorough analysis
-  const targetDistribution = {
-    1: Math.min(10, reviewsByRating[1].length),
-    2: Math.min(10, reviewsByRating[2].length),
-    3: Math.min(10, reviewsByRating[3].length),
-    4: Math.min(15, reviewsByRating[4].length),
-    5: Math.min(15, reviewsByRating[5].length),
-  };
-
-  Object.entries(targetDistribution).forEach(([rating, count]) => {
-    balancedSample.push(...reviewsByRating[Number(rating)].slice(0, count));
-  });
-
-  // If we haven't reached our sample size, add more reviews
-  if (balancedSample.length < sampleSize) {
-    const remaining = reviewSample.filter(
-      (review) => !balancedSample.some((r) => r.id === review.id)
-    );
-    balancedSample.push(
-      ...remaining.slice(0, sampleSize - balancedSample.length)
-    );
-  }
-
-  // Create a prompt for review analysis
-  const prompt = `
-    You are an expert app market analyst specializing in competitive analysis. You need to analyze a set of user reviews for the app "${
-      appInfo.appName
-    }".
-    
-    ## App Context
-    - App Name: ${appInfo.appName}
-    - Categories: ${appInfo.categories.join(", ")}
-    - Current Version: ${appInfo.version}
-    - Last Updated: ${appInfo.updated.toISOString().split("T")[0]}
-    - Installs: ${appInfo.installs}
-    - Overall Rating: ${appInfo.appScore.toFixed(1)}/5
-    
-    ## App Description
-    ${appInfo.appDescription.slice(0, 500)}...
-    
-    ## Analysis Goal
-    I need you to identify this app's key strengths and weaknesses based on user reviews.
-    Focus on what users love and hate about this app, paying special attention to specific features,
-    user segments, and areas where this app might be vulnerable to competition.
-    Be brutally honest in your assessment - I'm looking to build a competitive app, so I need
-    to understand where I can outperform this existing solution.
-    
-    ## Reviews to Analyze
-    I'm providing a balanced sample of ${
-      balancedSample.length
-    } reviews across different ratings:
-    - ${reviewsByRating[1].length} one-star reviews
-    - ${reviewsByRating[2].length} two-star reviews
-    - ${reviewsByRating[3].length} three-star reviews
-    - ${reviewsByRating[4].length} four-star reviews
-    - ${reviewsByRating[5].length} five-star reviews
-    
-    ${balancedSample
-      .map(
-        (review, i) => `
-    REVIEW #${i + 1} [${review.score}/5 stars] (${
-          new Date(review.date).toISOString().split("T")[0]
-        }):
-    "${review.title ? `${review.title}: ` : ""}${review.text}"
-    `
+// Schemas for AI-generated analysis results
+const strengthWeaknessSchema = z
+  .object({
+    strengths: z
+      .array(
+        z.object({
+          title: z.string().describe("Title summarizing the strength"),
+          description: z
+            .string()
+            .describe("Detailed description of the strength with evidence"),
+        }),
       )
-      .join("\n")}
-    
-    Based on these reviews, provide a comprehensive analysis of the app with a focus on competitive positioning.
-    Depth of analysis: ${analysisDepth} (more ${
-    analysisDepth === "comprehensive"
-      ? "detailed"
-      : analysisDepth === "basic"
-      ? "concise"
-      : "balanced"
+      .describe("Array of key strengths identified from reviews"),
+    weaknesses: z
+      .array(
+        z.object({
+          title: z.string().describe("Title summarizing the weakness"),
+          description: z
+            .string()
+            .describe("Detailed description of the weakness with evidence"),
+        }),
+      )
+      .describe("Array of key weaknesses identified from reviews"),
   })
-  `;
+  .describe("Schema for strengths and weaknesses analysis");
 
-  // Generate the analysis
-  const { object: analysis } = await generateObject({
-    model,
-    schema: appAnalysisSchema,
-    maxRetries: 3,
-    prompt,
-    temperature: 0.2, // Lower temperature for more consistent analysis
-  });
+const sentimentAnalysisSchema = z
+  .object({
+    overall: z
+      .string()
+      .describe(
+        "Overall sentiment assessment (positive/negative/neutral/mixed)",
+      ),
+    positive: z
+      .array(z.string())
+      .default([])
+      .describe("Key positive themes mentioned in reviews"),
+    negative: z
+      .array(z.string())
+      .default([])
+      .describe("Key negative themes mentioned in reviews"),
+    neutral: z
+      .array(z.string())
+      .default([])
+      .describe("Neutral or factual observations from reviews"),
+    mixed: z
+      .array(z.string())
+      .default([])
+      .describe("Mixed or unclear sentiment from reviews"),
+  })
+  .describe("Schema for sentiment analysis results");
 
-  return analysis as AppAnalysis;
+const keyFeaturesSchema = z
+  .object({
+    features: z
+      .array(
+        z.object({
+          name: z.string().describe("Name of the feature"),
+          sentiment: z
+            .enum(["positive", "negative", "neutral", "mixed"])
+            .describe("Overall sentiment toward this feature"),
+          description: z
+            .string()
+            .describe("Summary of user opinions about this feature"),
+        }),
+      )
+      .describe("Array of key features mentioned in reviews"),
+  })
+  .describe("Schema for feature analysis results");
+
+/**
+ * Generator function that performs app review analysis while yielding status updates
+ * This unified function replaces the previous analyzeReviews and streamingAnalyzeReviews functions
+ * @param appInfo - Object containing app information and reviews
+ * @param options - Configuration options for the analysis
+ * @yields Status updates and intermediate results during analysis
+ * @returns The final complete analysis result
+ */
+export async function* analyzeAppReviews(
+  appInfo: App,
+  reviews: AppReview[],
+  options: {
+    sampleSize?: number;
+    analysisDepth?: "basic" | "detailed" | "comprehensive";
+  } = {},
+): AsyncGenerator<AnalysisUpdate | AppAnalysis> {
+  try {
+    const sampleSize = options.sampleSize ?? 50;
+    const analysisDepth = options.analysisDepth ?? "detailed";
+
+    // Initialize analysis
+    yield {
+      type: "status",
+      status: "initializing",
+      message: `Starting analysis of ${appInfo.name}...`,
+      progress: 0,
+      data: {
+        appId: appInfo.appId,
+        appName: appInfo.name,
+        appScore: appInfo.score,
+        reviewCount: appInfo.reviews,
+      },
+    };
+
+    // Take a representative sample of reviews
+    const reviewSample = reviews.slice(0, Math.min(sampleSize, reviews.length));
+
+    // Categorize reviews by rating for more balanced analysis
+    const reviewsByRating: Record<number, AppReview[]> = {
+      1: [],
+      2: [],
+      3: [],
+      4: [],
+      5: [],
+    };
+
+    reviewSample.forEach((review) => {
+      const score = review.score ?? 3;
+      if (reviewsByRating[score]) {
+        reviewsByRating[score].push(review);
+      }
+    });
+
+    // Provide rating distribution update
+    yield {
+      type: "status",
+      status: "processing",
+      message: "Categorizing reviews by rating...",
+      progress: 10,
+      data: {
+        reviewDistribution: {
+          oneStar: reviewsByRating[1]?.length ?? 0,
+          twoStar: reviewsByRating[2]?.length ?? 0,
+          threeStar: reviewsByRating[3]?.length ?? 0,
+          fourStar: reviewsByRating[4]?.length ?? 0,
+          fiveStar: reviewsByRating[5]?.length ?? 0,
+        },
+      },
+    };
+
+    // Ensure we have a balanced sample that includes more critical reviews
+    const balancedSample: AppReview[] = [];
+    // Always include more low ratings for thorough analysis
+    const targetDistribution = {
+      1: Math.min(10, reviewsByRating[1]?.length ?? 0),
+      2: Math.min(10, reviewsByRating[2]?.length ?? 0),
+      3: Math.min(10, reviewsByRating[3]?.length ?? 0),
+      4: Math.min(15, reviewsByRating[4]?.length ?? 0),
+      5: Math.min(15, reviewsByRating[5]?.length ?? 0),
+    };
+
+    Object.entries(targetDistribution).forEach(([rating, count]) => {
+      const ratingNumber = Number(rating);
+      if (reviewsByRating[ratingNumber]) {
+        balancedSample.push(...reviewsByRating[ratingNumber].slice(0, count));
+      }
+    });
+
+    // If we haven't reached our sample size, add more reviews
+    if (balancedSample.length < sampleSize) {
+      const remaining = reviewSample.filter(
+        (review) => !balancedSample.some((r) => r.id === review.id),
+      );
+      balancedSample.push(
+        ...remaining.slice(0, sampleSize - balancedSample.length),
+      );
+    }
+
+    // Update on sample creation
+    yield {
+      type: "status",
+      status: "processing",
+      message: "Created balanced review sample...",
+      progress: 20,
+      data: {
+        sampleSize: balancedSample.length,
+      },
+    };
+
+    // Create a prompt for review analysis
+    const prompt = `
+      You are an expert app market analyst specializing in competitive analysis. You need to analyze a set of user reviews for the app "${
+        appInfo.name
+      }".
+      
+      ## App Context
+      - App Name: ${appInfo.name}
+      - Categories: ${(
+        appInfo.categories as Array<{ name: string; id: string | null }>
+      )
+        .map((c) => c.name)
+        .join(", ")}
+      - Current Version: ${appInfo.version}
+      - Last Updated: ${new Date(appInfo.updatedAt).toISOString().split("T")[0]}
+      - Installs: ${appInfo.installs}
+      - Overall Rating: ${appInfo.score.toFixed(1)}/5
+      
+      ## App Description
+      ${appInfo.description.slice(0, 500)}...
+      
+      ## Analysis Goal
+      I need you to identify this app's key strengths and weaknesses based on user reviews.
+      Focus on what users love and hate about this app, paying special attention to specific features,
+      user segments, and areas where this app might be vulnerable to competition.
+      Be brutally honest in your assessment - I'm looking to build a competitive app, so I need
+      to understand where I can outperform this existing solution.
+      
+      ## Reviews to Analyze
+      I'm providing a balanced sample of ${
+        balancedSample.length
+      } reviews across different ratings:
+    `;
+
+    // Format reviews for the prompt
+    const formattedReviews = balancedSample.map(
+      (review, i) => `
+      Review #${i + 1} (${review.score}):
+      ${review.text}
+      `,
+    );
+
+    const completePrompt = `${prompt}\n${formattedReviews.join("\n")}\n
+      ## Analysis Instructions
+      Based on these reviews, provide a structured analysis that covers:
+      
+      1. App Strengths: What users consistently praise about this app (features, UX, etc.)
+      2. App Weaknesses: Pain points, bugs, and feature requests
+      3. Market Position: How this app positions itself and its unique value proposition
+      4. User Demographics: What kinds of users seem to be using this app
+      5. Feature Analysis: Top features mentioned and sentiment around them
+      6. Pricing Analysis: 
+         - Value for Money: Do users feel they're getting value?
+         - Pricing complaints: Are there specific issues with pricing?
+         - Willingness to Pay: For what features would users pay more?
+      7. Strategic Recommendations: What should a competing app do to outperform this one?
+      
+      Be comprehensive, insightful and brutally honest. Your analysis should have the depth of ${analysisDepth} analysis.
+    `;
+
+    // Status update for sending to AI
+    yield {
+      type: "status",
+      status: "processing",
+      message: "Sending review data to AI for analysis...",
+      progress: 30,
+    };
+
+    // Prepare for analysis timing
+    const analysisStartTime = Date.now();
+
+    // Generate structured analysis using schema
+    const analysisResponse = await generateObject({
+      model,
+      schema: appAnalysisSchema,
+      prompt: completePrompt,
+    });
+
+    const analysisEndTime = Date.now();
+    const analysisDuration = (analysisEndTime - analysisStartTime) / 1000;
+
+    // Signal the AI is processing the data
+    yield {
+      type: "status",
+      status: "processing",
+      message: `AI analyzing reviews... (took ${analysisDuration.toFixed(1)} seconds)`,
+      progress: 60,
+    };
+
+    // Cast the result to AppAnalysis to work with it properly
+    const analysis = analysisResponse.object;
+
+    // Extract insights for interim update
+    const strengthsPreview = analysis.overview?.strengths.slice(0, 3) ?? [];
+    const weaknessesPreview = analysis.overview?.weaknesses.slice(0, 3) ?? [];
+
+    // Provide an interim update with initial findings
+    yield {
+      type: "status",
+      status: "processing",
+      message: "Initial insights discovered...",
+      progress: 80,
+      data: {
+        strengthsPreview,
+        weaknessesPreview,
+      },
+    };
+
+    // Final processing
+    yield {
+      type: "status",
+      status: "completing",
+      message: "Finalizing analysis...",
+      progress: 95,
+    };
+
+    // Replace strength/weakness extraction with AI processing
+    const aiAnalysis = await analyzeReviews(balancedSample);
+    console.dir(aiAnalysis, { depth: null });
+    // Return the complete analysis as the final yield value
+    yield {
+      ...analysis,
+      ...aiAnalysis,
+    };
+  } catch (error: unknown) {
+    // If there's an error during processing, yield the error and throw
+    yield {
+      type: "error",
+      message: `Error analyzing reviews: ${error instanceof Error ? error.message : "Unknown error"}`,
+      data: { error },
+    };
+    throw error;
+  }
 }
 
-/**
- * Streaming version of the review analyzer that sends updates during the analysis process
- * @param appInfo - Object containing app information and reviews
- * @param sampleSize - Number of reviews to analyze (default: 50)
- * @param analysisDepth - Depth of analysis to perform (default: "detailed")
- * @returns A data stream with the analysis progress and results
- */
-export function streamingAnalyzeReviews(
-  appInfo: AppInfo,
-  sampleSize: number = 50,
-  analysisDepth: string = "detailed"
-) {
-  // Create a data stream that will send updates to the client
-  const dataStream = createDataStream();
+// Main review analysis function
+export async function analyzeReviews(reviews: AppReview[]) {
+  const filteredReviews = reviews.filter(
+    (review) => review.text && review.text.length > 10,
+  );
 
-  // This function will perform the analysis and send updates
-  const analyze = async () => {
-    try {
-      // Take a representative sample of reviews
-      const reviewSample = appInfo.reviews.slice(
-        0,
-        Math.min(sampleSize, appInfo.reviews.length)
-      );
+  if (filteredReviews.length === 0) {
+    return {
+      strengths: [],
+      weaknesses: [],
+      sentiment: {
+        overall: "neutral",
+        positive: [],
+        negative: [],
+        neutral: [],
+        mixed: [],
+      },
+      keyFeatures: { features: [] },
+    };
+  }
 
-      // Send initialization update
-      dataStream.emit({
-        type: "status",
-        status: "initializing",
-        message: `Starting analysis of ${appInfo.appName}...`,
-        progress: 0,
-        appInfo: {
-          appId: appInfo.appId,
-          appName: appInfo.appName,
-          appScore: appInfo.appScore,
-          reviewCount: reviewSample.length,
-        },
-      });
+  // Run analyses in parallel for better performance
+  const [strengthsAndWeaknesses, sentiment, keyFeatures] = await Promise.all([
+    extractStrengthsAndWeaknesses(filteredReviews),
+    analyzeSentiment(filteredReviews),
+    extractKeyFeatures(filteredReviews),
+  ]);
 
-      // Categorize reviews by rating
-      const reviewsByRating: Record<number, Review[]> = {
-        1: [],
-        2: [],
-        3: [],
-        4: [],
-        5: [],
-      };
-
-      reviewSample.forEach((review) => {
-        const score = review.score || 3;
-        if (reviewsByRating[score]) {
-          reviewsByRating[score].push(review);
-        }
-      });
-
-      // Send review distribution update
-      dataStream.emit({
-        type: "status",
-        status: "processing",
-        message: "Categorizing reviews by rating...",
-        progress: 10,
-        reviewDistribution: {
-          oneStar: reviewsByRating[1].length,
-          twoStar: reviewsByRating[2].length,
-          threeStar: reviewsByRating[3].length,
-          fourStar: reviewsByRating[4].length,
-          fiveStar: reviewsByRating[5].length,
-        },
-      });
-
-      // Create balanced sample
-      const balancedSample: Review[] = [];
-      const targetDistribution = {
-        1: Math.min(10, reviewsByRating[1].length),
-        2: Math.min(10, reviewsByRating[2].length),
-        3: Math.min(10, reviewsByRating[3].length),
-        4: Math.min(15, reviewsByRating[4].length),
-        5: Math.min(15, reviewsByRating[5].length),
-      };
-
-      Object.entries(targetDistribution).forEach(([rating, count]) => {
-        balancedSample.push(...reviewsByRating[Number(rating)].slice(0, count));
-      });
-
-      // If we haven't reached our sample size, add more reviews
-      if (balancedSample.length < sampleSize) {
-        const remaining = reviewSample.filter(
-          (review) => !balancedSample.some((r) => r.id === review.id)
-        );
-        balancedSample.push(
-          ...remaining.slice(0, sampleSize - balancedSample.length)
-        );
-      }
-
-      // Send sample creation update
-      dataStream.emit({
-        type: "status",
-        status: "processing",
-        message: "Created balanced review sample...",
-        progress: 20,
-        sampleSize: balancedSample.length,
-      });
-
-      // Create a prompt for review analysis
-      const prompt = `
-        You are an expert app market analyst specializing in competitive analysis. You need to analyze a set of user reviews for the app "${
-          appInfo.appName
-        }".
-        
-        ## App Context
-        - App Name: ${appInfo.appName}
-        - Categories: ${appInfo.categories.join(", ")}
-        - Current Version: ${appInfo.version}
-        - Last Updated: ${appInfo.updated.toISOString().split("T")[0]}
-        - Installs: ${appInfo.installs}
-        - Overall Rating: ${appInfo.appScore.toFixed(1)}/5
-        
-        ## App Description
-        ${appInfo.appDescription.slice(0, 500)}...
-        
-        ## Analysis Goal
-        I need you to identify this app's key strengths and weaknesses based on user reviews.
-        Focus on what users love and hate about this app, paying special attention to specific features,
-        user segments, and areas where this app might be vulnerable to competition.
-        Be brutally honest in your assessment - I'm looking to build a competitive app, so I need
-        to understand where I can outperform this existing solution.
-        
-        ## Reviews to Analyze
-        I'm providing a balanced sample of ${
-          balancedSample.length
-        } reviews across different ratings:
-        - ${reviewsByRating[1].length} one-star reviews
-        - ${reviewsByRating[2].length} two-star reviews
-        - ${reviewsByRating[3].length} three-star reviews
-        - ${reviewsByRating[4].length} four-star reviews
-        - ${reviewsByRating[5].length} five-star reviews
-        
-        ${balancedSample
-          .map(
-            (review, i) => `
-        REVIEW #${i + 1} [${review.score}/5 stars] (${
-              new Date(review.date).toISOString().split("T")[0]
-            }):
-        "${review.title ? `${review.title}: ` : ""}${review.text}"
-        `
-          )
-          .join("\n")}
-        
-        Based on these reviews, provide a comprehensive analysis of the app with a focus on competitive positioning.
-        Depth of analysis: ${analysisDepth} (more ${
-        analysisDepth === "comprehensive"
-          ? "detailed"
-          : analysisDepth === "basic"
-          ? "concise"
-          : "balanced"
-      })
-        
-        First provide a step-by-step analysis in these stages:
-        1. Initial observations and notable patterns
-        2. Key strengths identified
-        3. Main weaknesses and pain points
-        4. User segment analysis
-        5. Feature analysis
-        6. Competitive positioning
-        7. Final recommendations
-        
-        After each step, wait for me to ask for the next step.
-      `;
-
-      // Send analysis starting update
-      dataStream.emit({
-        type: "status",
-        status: "analyzing",
-        message: "Starting AI analysis of reviews...",
-        progress: 30,
-      });
-
-      // Stream the initial analysis process to show progress
-      const textStream = await streamText({
-        model,
-        maxSteps: 7,
-        messages: [{ role: "user", content: prompt }],
-      });
-
-      // Process and forward the stream with progress updates
-      let step = 0;
-      const steps = [
-        "observations",
-        "strengths",
-        "weaknesses",
-        "segments",
-        "features",
-        "positioning",
-        "recommendations",
-      ];
-      const stepProgress = [40, 50, 60, 70, 80, 90, 95];
-
-      for await (const chunk of textStream) {
-        // Check if this chunk indicates a new step
-        if (
-          chunk.content.includes(`Step ${step + 1}:`) ||
-          chunk.content.includes(`${step + 1}.`) ||
-          chunk.content.includes(steps[step])
-        ) {
-          step = Math.min(step + 1, steps.length - 1);
-
-          dataStream.emit({
-            type: "status",
-            status: "analyzing",
-            message: `Analyzing ${steps[step]}...`,
-            progress: stepProgress[step],
-            currentStep: step + 1,
-            totalSteps: steps.length,
-          });
-        }
-
-        // Send the chunk
-        dataStream.emit({
-          type: "analysisChunk",
-          chunk: chunk.content,
-        });
-      }
-
-      // Now generate the structured analysis object
-      dataStream.emit({
-        type: "status",
-        status: "finalizing",
-        message: "Generating structured analysis...",
-        progress: 98,
-      });
-
-      // Generate the final structured analysis
-      const { object: analysis } = await generateObject({
-        model,
-        schema: appAnalysisSchema,
-        maxRetries: 3,
-        prompt,
-        temperature: 0.2,
-      });
-
-      // Send the complete analysis
-      dataStream.emit({
-        type: "result",
-        status: "completed",
-        message: "Analysis complete",
-        progress: 100,
-        analysis: analysis as AppAnalysis,
-      });
-
-      // Close the stream when done
-      dataStream.close();
-    } catch (error) {
-      console.error("Error in streaming analysis:", error);
-
-      // Send error status
-      dataStream.emit({
-        type: "error",
-        status: "error",
-        message: `Analysis failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
-
-      // Close the stream on error
-      dataStream.close();
-    }
+  return {
+    strengths: strengthsAndWeaknesses.strengths,
+    weaknesses: strengthsAndWeaknesses.weaknesses,
+    sentiment,
+    keyFeatures,
   };
+}
 
-  // Start the analysis process without awaiting it
-  analyze();
+// Extract strengths and weaknesses using AI
+export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
+  if (reviews.length === 0) {
+    return { strengths: [], weaknesses: [] };
+  }
 
-  // Return the data stream
-  return dataStream;
+  const reviewSummary = reviews.map((r) => ({
+    content: r.text,
+    score: r.score,
+  }));
+
+  const result = await generateObject({
+    model,
+    prompt: `
+      Analyze these app reviews and identify the key strengths and weaknesses:
+      ${JSON.stringify(reviewSummary)}
+      
+      Extract the 5 most significant strengths and 5 most significant weaknesses based on user feedback.
+      Focus on recurring themes, feature mentions, and pain points expressed by users.
+      For each strength and weakness, provide a concise title and a detailed description that explains
+      the issue with evidence from the reviews.
+    `,
+    schema: strengthWeaknessSchema,
+  });
+
+  return result.object;
+}
+
+// Analyze sentiment using AI
+export async function analyzeSentiment(reviews: AppReview[]) {
+  if (reviews.length === 0) {
+    return {
+      overall: "neutral",
+      positive: [],
+      negative: [],
+      neutral: [],
+      mixed: [],
+    };
+  }
+
+  const reviewTexts = reviews.map((r) => r.text);
+
+  const result = await generateObject({
+    model,
+    prompt: `
+      Analyze the sentiment of these app reviews:
+      ${JSON.stringify(reviewTexts)}
+      
+      Provide:
+      1. An overall sentiment assessment (positive, negative, or neutral, or mixed)
+      2. Key positive themes mentioned in the reviews
+      3. Key negative themes mentioned in the reviews
+      4. Any neutral or factual observations made by users
+    `,
+    schema: sentimentAnalysisSchema,
+  });
+
+  return result.object;
+}
+
+// Extract key features using AI
+export async function extractKeyFeatures(reviews: AppReview[]) {
+  if (reviews.length === 0) {
+    return { features: [] };
+  }
+
+  const reviewSummary = reviews.map((r) => ({
+    content: r.text,
+    score: r.score,
+  }));
+
+  const result = await generateObject({
+    model,
+    prompt: `
+      Analyze these app reviews and identify the key features mentioned by users:
+      ${JSON.stringify(reviewSummary)}
+      
+      For each feature:
+      1. Provide the feature name
+      2. Determine the overall sentiment toward this feature (positive, negative, or neutral)
+      3. Write a concise description of user opinions about this feature
+      
+      Identify up to 8 distinct features that appear most frequently in the reviews.
+    `,
+    schema: keyFeaturesSchema,
+  });
+
+  return result.object;
+}
+
+// Helper function for any specialized text processing if needed
+export function preprocessReviewText(text: string): string {
+  if (!text) return "";
+
+  // Basic cleaning - remove extra spaces, normalize line breaks
+  return text.trim().replace(/\s+/g, " ").replace(/\n+/g, " ");
 }

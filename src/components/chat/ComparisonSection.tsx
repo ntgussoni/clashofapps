@@ -13,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -400,28 +401,76 @@ export default function ComparisonSection({
 
           {/* Recommendations Summary */}
           <Card className="mt-6 overflow-hidden border shadow-sm">
-            <CardHeader className="bg-amber-50 px-4 py-3 dark:bg-amber-900/20">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
-                <LightbulbIcon className="h-4 w-4" />
-                Strategic Recommendations
-              </CardTitle>
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-4 dark:from-amber-950/30 dark:to-orange-950/30">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-lg font-bold text-amber-700 dark:text-amber-400">
+                  <LightbulbIcon className="h-5 w-5" />
+                  Action Plan for Success
+                </CardTitle>
+                <Badge className="bg-amber-100 px-2 py-1 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                  Strategic Roadmap
+                </Badge>
+              </div>
+              <CardDescription className="mt-1 text-sm text-amber-700/70 dark:text-amber-400/70">
+                Follow these steps to create a better app than any competitor
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <ul className="space-y-2">
-                {comparisonResults.recommendationSummary.map((rec, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.1 }}
-                    className="flex items-start rounded-md bg-gray-50 p-3 dark:bg-gray-800"
-                  >
-                    <span className="mr-2 mt-0.5 text-amber-500">•</span>
-                    <span className="text-sm">{rec}</span>
-                  </motion.li>
-                ))}
-              </ul>
+              <div className="relative">
+                {/* Vertical timeline line */}
+                <div className="absolute bottom-0 left-[19px] top-0 w-0.5 bg-gradient-to-b from-amber-400 to-orange-400 dark:from-amber-600 dark:to-orange-600"></div>
+
+                <ul className="relative space-y-4">
+                  {comparisonResults.recommendationSummary.map((rec, i) => {
+                    // Extract step number if it exists
+                    const stepRegex = /^STEP (\d+):/;
+                    const stepMatch = stepRegex.exec(rec);
+                    const stepNumber = stepMatch
+                      ? stepMatch[1]
+                      : (i + 1).toString();
+                    const content = stepMatch
+                      ? rec.replace(/^STEP \d+: /, "")
+                      : rec;
+
+                    return (
+                      <motion.li
+                        key={i}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: i * 0.1 }}
+                        className="relative flex items-start pl-10"
+                      >
+                        {/* Step number circle */}
+                        <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-orange-400 font-bold text-white shadow-md dark:from-amber-600 dark:to-orange-600">
+                          {stepNumber}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-amber-800 dark:bg-amber-900/20">
+                          <div className="mb-1 font-medium text-amber-900 dark:text-amber-300">
+                            {content.split(".")[0]}.
+                          </div>
+                          <div className="text-sm text-amber-700 dark:text-amber-400/80">
+                            {content.split(".").slice(1).join(".")}
+                          </div>
+                        </div>
+                      </motion.li>
+                    );
+                  })}
+                </ul>
+              </div>
             </CardContent>
+            <CardFooter className="border-t bg-amber-50/50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-900/10">
+              <div className="flex w-full items-center justify-between">
+                <div className="text-sm italic text-amber-700 dark:text-amber-400/90">
+                  Recommendations based on data from{" "}
+                  {comparisonResults.apps.length} analyzed apps
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  Priority Order
+                </Badge>
+              </div>
+            </CardFooter>
           </Card>
         </CardContent>
       </Card>
