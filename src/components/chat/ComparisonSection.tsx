@@ -51,6 +51,13 @@ export default function ComparisonSection({
     return "secondary";
   };
 
+  // Helper function to get rating color
+  const getRatingColorClass = (rating: number) => {
+    if (rating >= 4.0) return "text-emerald-600 dark:text-emerald-400";
+    if (rating >= 3.0) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -58,11 +65,11 @@ export default function ComparisonSection({
       transition={{ duration: 0.5, delay: 0.2 }}
       className="mb-6 w-full"
     >
-      <Card className="overflow-hidden border shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
+      <Card className="overflow-hidden border shadow-md">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl font-bold">
-              <BarChart3Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100">
+              <BarChart3Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Cross-App Comparison
             </CardTitle>
             <TooltipProvider>
@@ -76,7 +83,7 @@ export default function ComparisonSection({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <CardDescription className="text-sm">
+          <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
             Comprehensive comparison of key metrics across competing apps
           </CardDescription>
         </CardHeader>
@@ -107,8 +114,8 @@ export default function ComparisonSection({
 
             {/* Key Metrics Tab */}
             <TabsContent value="metrics" className="space-y-4">
-              <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
-                <h3 className="mb-3 flex items-center gap-2 font-medium text-blue-700 dark:text-blue-400">
+              <div className="rounded-lg bg-blue-50/30 p-4 shadow-sm dark:bg-blue-900/10">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-400">
                   <BarChart3Icon className="h-4 w-4" />
                   App Performance Overview
                 </h3>
@@ -116,9 +123,15 @@ export default function ComparisonSection({
                   <Table>
                     <TableHeader className="bg-gray-50 dark:bg-gray-700/50">
                       <TableRow>
-                        <TableHead className="font-medium">App</TableHead>
-                        <TableHead className="font-medium">Rating</TableHead>
-                        <TableHead className="font-medium">Reviews</TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          App
+                        </TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          Rating
+                        </TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          Reviews
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -135,8 +148,10 @@ export default function ComparisonSection({
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              <StarIcon className="mr-1 h-4 w-4 text-yellow-500" />
-                              <span className="font-medium">
+                              <StarIcon className="mr-1 h-4 w-4 text-amber-500" />
+                              <span
+                                className={`font-medium ${getRatingColorClass(app.rating)}`}
+                              >
                                 {typeof app.rating === "number"
                                   ? app.rating.toFixed(1)
                                   : Number(app.rating).toFixed(1)}
@@ -150,7 +165,7 @@ export default function ComparisonSection({
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium">
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
                               {app.ratingCount.toLocaleString()}
                             </span>
                           </TableCell>
@@ -166,15 +181,15 @@ export default function ComparisonSection({
             <TabsContent value="strengths-weaknesses" className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Card className="overflow-hidden border shadow-sm">
-                  <CardHeader className="bg-green-50 px-4 py-3 dark:bg-green-900/20">
-                    <CardTitle className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+                  <CardHeader className="bg-emerald-50/50 px-4 py-3 dark:bg-emerald-900/20">
+                    <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
                       <CheckCircle2Icon className="h-4 w-4" />
                       Common Strengths
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
                     {comparisonResults.strengthsComparison.common.length > 0 ? (
-                      <ul className="space-y-2">
+                      <ul className="space-y-3">
                         {comparisonResults.strengthsComparison.common.map(
                           (item, i) => (
                             <motion.li
@@ -182,17 +197,17 @@ export default function ComparisonSection({
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: i * 0.1 }}
-                              className="rounded-md bg-green-50 p-3 dark:bg-green-900/20"
+                              className="rounded-md bg-emerald-50/30 p-3 shadow-sm dark:bg-emerald-900/10"
                             >
-                              <span className="font-medium text-green-800 dark:text-green-300">
+                              <span className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
                                 {item.strength}
                               </span>
-                              <div className="mt-2 flex flex-wrap gap-1">
+                              <div className="mt-2 flex flex-wrap gap-1.5">
                                 {item.apps.map((app, j) => (
                                   <Badge
                                     key={j}
                                     variant="outline"
-                                    className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
+                                    className="border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
                                   >
                                     {app}
                                   </Badge>
@@ -211,7 +226,7 @@ export default function ComparisonSection({
                 </Card>
 
                 <Card className="overflow-hidden border shadow-sm">
-                  <CardHeader className="bg-red-50 px-4 py-3 dark:bg-red-900/20">
+                  <CardHeader className="bg-red-50/50 px-4 py-3 dark:bg-red-900/20">
                     <CardTitle className="flex items-center gap-2 text-sm font-medium text-red-700 dark:text-red-400">
                       <AlertCircleIcon className="h-4 w-4" />
                       Common Weaknesses
@@ -220,7 +235,7 @@ export default function ComparisonSection({
                   <CardContent className="p-4">
                     {comparisonResults.weaknessesComparison.common.length >
                     0 ? (
-                      <ul className="space-y-2">
+                      <ul className="space-y-3">
                         {comparisonResults.weaknessesComparison.common.map(
                           (item, i) => (
                             <motion.li
@@ -228,17 +243,17 @@ export default function ComparisonSection({
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: i * 0.1 }}
-                              className="rounded-md bg-red-50 p-3 dark:bg-red-900/20"
+                              className="rounded-md bg-red-50/30 p-3 shadow-sm dark:bg-red-900/10"
                             >
-                              <span className="font-medium text-red-800 dark:text-red-300">
+                              <span className="text-sm font-medium text-red-800 dark:text-red-300">
                                 {item.weakness}
                               </span>
-                              <div className="mt-2 flex flex-wrap gap-1">
+                              <div className="mt-2 flex flex-wrap gap-1.5">
                                 {item.apps.map((app, j) => (
                                   <Badge
                                     key={j}
                                     variant="outline"
-                                    className="border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+                                    className="border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
                                   >
                                     {app}
                                   </Badge>
@@ -260,8 +275,8 @@ export default function ComparisonSection({
 
             {/* Features Tab */}
             <TabsContent value="features" className="space-y-4">
-              <div className="rounded-lg bg-amber-50 p-4 dark:bg-amber-900/20">
-                <h3 className="mb-3 flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400">
+              <div className="rounded-lg bg-amber-50/30 p-4 shadow-sm dark:bg-amber-900/10">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
                   <StarIcon className="h-4 w-4" />
                   Feature Comparison
                 </h3>
@@ -269,12 +284,18 @@ export default function ComparisonSection({
                   <Table>
                     <TableHeader className="bg-gray-50 dark:bg-gray-700/50">
                       <TableRow>
-                        <TableHead className="font-medium">Feature</TableHead>
-                        <TableHead className="font-medium">
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          Feature
+                        </TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
                           App Coverage
                         </TableHead>
-                        <TableHead className="font-medium">Sentiment</TableHead>
-                        <TableHead className="font-medium">Mentions</TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          Sentiment
+                        </TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          Mentions
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -291,7 +312,7 @@ export default function ComparisonSection({
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">
+                              <span className="font-medium text-gray-800 dark:text-gray-200">
                                 {(feature.appCoverage * 100).toFixed(0)}%
                               </span>
                               <div className="w-16">
@@ -307,12 +328,25 @@ export default function ComparisonSection({
                               variant={getSentimentVariant(
                                 feature.averageSentiment,
                               )}
+                              className="px-2 py-0.5 text-xs"
                             >
                               {feature.averageSentiment.toFixed(2)}
                             </Badge>
+                            <div className="mt-1 w-full">
+                              <Progress
+                                value={(feature.averageSentiment + 1) * 50}
+                                className={`h-1.5 ${
+                                  feature.averageSentiment > 0.5
+                                    ? "bg-emerald-500"
+                                    : feature.averageSentiment < 0
+                                      ? "bg-red-500"
+                                      : "bg-amber-500"
+                                }`}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium">
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
                               {feature.totalMentions}
                             </span>
                           </TableCell>
@@ -326,8 +360,8 @@ export default function ComparisonSection({
 
             {/* Pricing Tab */}
             <TabsContent value="pricing" className="space-y-4">
-              <div className="rounded-lg bg-emerald-50 p-4 dark:bg-emerald-900/20">
-                <h3 className="mb-3 flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-400">
+              <div className="rounded-lg bg-emerald-50/30 p-4 shadow-sm dark:bg-emerald-900/10">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
                   <DollarSignIcon className="h-4 w-4" />
                   Pricing Perception
                 </h3>
@@ -335,14 +369,16 @@ export default function ComparisonSection({
                   <Table>
                     <TableHeader className="bg-gray-50 dark:bg-gray-700/50">
                       <TableRow>
-                        <TableHead className="font-medium">App</TableHead>
-                        <TableHead className="font-medium">
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
+                          App
+                        </TableHead>
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
                           Value for Money
                         </TableHead>
-                        <TableHead className="font-medium">
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
                           Complaints
                         </TableHead>
-                        <TableHead className="font-medium">
+                        <TableHead className="font-medium text-gray-700 dark:text-gray-300">
                           Willingness
                         </TableHead>
                       </TableRow>
@@ -360,32 +396,36 @@ export default function ComparisonSection({
                             {pricing.appName}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={getSentimentVariant(
-                                pricing.valueForMoney,
-                              )}
-                            >
-                              {pricing.valueForMoney.toFixed(2)}
-                            </Badge>
-                            <div className="mt-1 w-full">
-                              <Progress
-                                value={Math.max(
-                                  0,
-                                  (pricing.valueForMoney + 1) * 50,
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                variant={getSentimentVariant(
+                                  pricing.valueForMoney,
                                 )}
-                                className="h-1.5"
+                                className="w-fit px-2 py-0.5 text-xs"
+                              >
+                                {pricing.valueForMoney.toFixed(2)}
+                              </Badge>
+                              <Progress
+                                value={(pricing.valueForMoney + 1) * 50}
+                                className={`h-1.5 ${
+                                  pricing.valueForMoney > 0.5
+                                    ? "bg-emerald-500"
+                                    : pricing.valueForMoney < 0
+                                      ? "bg-red-500"
+                                      : "bg-amber-500"
+                                }`}
                               />
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium">
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
                               {pricing.pricingComplaints}%
                             </span>
                           </TableCell>
                           <TableCell>
                             <Badge
                               variant="outline"
-                              className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+                              className="border-blue-200 bg-blue-50/50 px-2 py-0.5 text-xs text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
                             >
                               {pricing.willingness}
                             </Badge>

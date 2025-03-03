@@ -401,7 +401,7 @@ export default function CompareApps() {
       )}
 
       {/* Chat messages */}
-      {messages.length > 0 && (
+      {/* {messages.length > 0 && (
         <div className="mb-4 flex-grow space-y-4 overflow-y-auto">
           {messages.map((message) => (
             <div key={message.id} className="flex justify-end">
@@ -414,7 +414,7 @@ export default function CompareApps() {
           ))}
           <div ref={messagesEndRef} />
         </div>
-      )}
+      )} */}
     </div>
   );
 }
