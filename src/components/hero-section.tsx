@@ -39,8 +39,8 @@ export function HeroSection({
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-            Compare <span className="text-[#01875f]">Any Apps</span>{" "}
-            <span className="text-[#4285F4]">with AI</span>
+            Turn Competitor Flaws{" "}
+            <span className="text-[#4285F4]">into Your Winning Features.</span>
           </h1>
 
           <p className="max-w-2xl text-lg text-muted-foreground">

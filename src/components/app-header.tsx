@@ -1,28 +1,27 @@
-import { BarChart3, Search, Zap } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { BarChart3, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { siteConfig } from "@/lib/config";
+import { BrandIcon } from "@/components/ui/brand-icon";
 
 export function AppHeader() {
   return (
-    <header className="flex flex-col md:flex-row justify-between items-center gap-4">
+    <header className="flex flex-col items-center justify-between gap-4 md:flex-row">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          Clash of Apps <Zap className="h-6 w-6 text-yellow-500" />
+        <h1 className="flex items-center gap-2 text-3xl font-bold">
+          {siteConfig.name} <BrandIcon className="h-6 w-6" />
         </h1>
-        <p className="text-muted-foreground mt-1">
-          Compare apps and discover insights from reviews to gain a competitive edge
-        </p>
+        <p className="mt-1 text-muted-foreground">{siteConfig.description}</p>
       </div>
       <div className="flex gap-2">
         <Button variant="outline" size="sm">
-          <Search className="h-4 w-4 mr-2" />
+          <Search className="mr-2 h-4 w-4" />
           Advanced Search
         </Button>
         <Button size="sm">
-          <BarChart3 className="h-4 w-4 mr-2" />
+          <BarChart3 className="mr-2 h-4 w-4" />
           Generate Report
         </Button>
       </div>
     </header>
-  )
+  );
 }
-
