@@ -277,48 +277,46 @@ export default function ComparisonSection({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {comparisonResults.featureComparison
-                        .slice(0, 5)
-                        .map((feature, i) => (
-                          <motion.tr
-                            key={i}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.1 }}
-                            className="border-b transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
-                          >
-                            <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                              {feature.feature}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">
-                                  {(feature.appCoverage * 100).toFixed(0)}%
-                                </span>
-                                <div className="w-16">
-                                  <Progress
-                                    value={feature.appCoverage * 100}
-                                    className="h-1.5"
-                                  />
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={getSentimentVariant(
-                                  feature.averageSentiment,
-                                )}
-                              >
-                                {feature.averageSentiment.toFixed(2)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
+                      {comparisonResults.featureComparison.map((feature, i) => (
+                        <motion.tr
+                          key={i}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: i * 0.1 }}
+                          className="border-b transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+                        >
+                          <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                            {feature.feature}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
                               <span className="font-medium">
-                                {feature.totalMentions}
+                                {(feature.appCoverage * 100).toFixed(0)}%
                               </span>
-                            </TableCell>
-                          </motion.tr>
-                        ))}
+                              <div className="w-16">
+                                <Progress
+                                  value={feature.appCoverage * 100}
+                                  className="h-1.5"
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={getSentimentVariant(
+                                feature.averageSentiment,
+                              )}
+                            >
+                              {feature.averageSentiment.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {feature.totalMentions}
+                            </span>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>

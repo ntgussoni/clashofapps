@@ -1,25 +1,24 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LoginImage from "@/../public/login.webp";
-import Logo from "@/../public/logo.webp";
-import { CircleArrowLeft, MailIcon } from "lucide-react";
+import { MailIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { AuthHeader } from "@/components/auth-header";
 
 export default function LoginPage() {
   const router = useRouter();
-  const params = useSearchParams();
-  const hasVerify = params.get("verify") !== undefined;
+  const [showAlert, setShowAlert] = useState(false);
   const { data: session } = authClient.useSession();
 
   if (session) {
-    router.push("/sites");
+    router.push("/");
   }
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -29,35 +28,16 @@ export default function LoginPage() {
     await authClient.signIn.magicLink({
       email,
     });
+    setShowAlert(true);
   };
 
   return (
     <div className="flex h-dvh w-full items-center justify-center lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
       <div className="flex h-dvh items-center justify-center py-12">
         <div className="mx-auto grid w-[350px] gap-6">
-          <div className="group flex flex-col items-center justify-center gap-2 text-center">
-            <Link href="/" className="mb-4 flex items-center">
-              <Button
-                size={"icon"}
-                variant={"ghost"}
-                className="-ml-6 opacity-50 group-hover:opacity-100"
-              >
-                <CircleArrowLeft size={18} />
-              </Button>
-              <Image
-                src={Logo}
-                alt="Logo"
-                height={32}
-                className="self-center"
-              />
-            </Link>
-            <h1 className="text-3xl font-bold">Login</h1>
-            <p className="text-balance text-foreground">
-              Enter your email below to login to your account
-            </p>
-          </div>
+          <AuthHeader />
           <div className="grid gap-4">
-            {hasVerify && (
+            {showAlert && (
               <Alert
                 className="animate-animate-slidein300 mb-6 opacity-0"
                 variant="default"

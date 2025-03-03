@@ -33,13 +33,16 @@ export async function performCompetitorAnalysis(
   appAnalyses: Record<string, AppAnalysis>,
   appsData: Record<string, AppInfo>,
   yourAppId: string,
-  analysisDepth: string = "detailed"
+  analysisDepth: string = "detailed",
 ): Promise<CompetitorAnalysis> {
   const appIds = Object.keys(appAnalyses);
-  const appNames = Object.entries(appAnalyses).reduce((acc, [id, analysis]) => {
-    acc[id] = analysis.appName;
-    return acc;
-  }, {} as Record<string, string>);
+  const appNames = Object.entries(appAnalyses).reduce(
+    (acc, [id, analysis]) => {
+      acc[id] = analysis.appName;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 
   // Create a base prompt for competitor analysis
   const basePrompt = `
@@ -60,7 +63,7 @@ export async function performCompetitorAnalysis(
       * ${
         id === yourAppId ? "THIS IS THE PRIMARY APP OF INTEREST" : "Competitor"
       }
-    `
+    `,
       )
       .join("\n")}
     
@@ -96,7 +99,7 @@ export async function performCompetitorAnalysis(
         (f: any) =>
           `- ${f.feature}: Score ${f.sentimentScore.toFixed(2)}, Mentions ${
             f.mentionCount
-          }, ${f.competitiveEdge ? "✓ Competitive Edge" : "✗ Not Distinctive"}`
+          }, ${f.competitiveEdge ? "✓ Competitive Edge" : "✗ Not Distinctive"}`,
       )
       .join("\n")}
     
@@ -104,19 +107,19 @@ export async function performCompetitorAnalysis(
     ${analysis.userSegments
       .map(
         (s: any) =>
-          `- ${s.segment} (${s.sizeProportion}% of users): Satisfaction ${s.satisfactionLevel}, Retention Risk ${s.retentionRisk}`
+          `- ${s.segment} (${s.sizeProportion}% of users): Satisfaction ${s.satisfactionLevel}, Retention Risk ${s.retentionRisk}`,
       )
       .join("\n")}
     
     PRICING PERCEPTION:
     - Value for Money: ${analysis.pricingPerception.valueForMoney.toFixed(
-      2
+      2,
     )} (-1 to 1)
     - Pricing Complaints: ${analysis.pricingPerception.pricingComplaints.toFixed(
-      1
+      1,
     )}%
     - Willingness to Pay: ${analysis.pricingPerception.willingness}
-    `
+    `,
       )
       .join("\n")}
     
@@ -124,8 +127,8 @@ export async function performCompetitorAnalysis(
       analysisDepth === "comprehensive"
         ? "extremely detailed and thorough"
         : analysisDepth === "basic"
-        ? "concise and focused on the most important points"
-        : "balanced with moderate detail"
+          ? "concise and focused on the most important points"
+          : "balanced with moderate detail"
     }.
     
     Focus on being practical and specific - I need actionable insights, not generalities.
@@ -136,7 +139,7 @@ export async function performCompetitorAnalysis(
     schema: T,
     prompt: string,
     title: string,
-    fallbackGenerator: () => z.infer<T>
+    fallbackGenerator: () => z.infer<T>,
   ): Promise<z.infer<T>> {
     console.log(`Generating ${title}...`);
     try {
@@ -168,7 +171,7 @@ export async function performCompetitorAnalysis(
         "The market shows a mix of established players and emerging competitors with various strengths and weaknesses.",
       competitiveLandscape:
         "Competition is primarily focused on user experience, feature richness, and pricing models.",
-    })
+    }),
   );
 
   // Generate competitive advantages with improved prompt
@@ -178,7 +181,7 @@ export async function performCompetitorAnalysis(
     
     ## Analysis Request - Part 2: Competitive Advantages
     For each app analyzed (${appIds.join(
-      ", "
+      ", ",
     )}), identify its key competitive advantages and unique selling propositions based on the reviews.
     
     You MUST provide at least 2-3 competitive advantages for EACH app, and 1-2 unique selling propositions for EACH app.
@@ -206,7 +209,7 @@ export async function performCompetitorAnalysis(
 
       appIds.forEach((id) => {
         const analysis = appAnalyses[id];
-        advantages[id] = analysis.overview.strengths.slice(0, 3);
+        advantages[id] = analysis.overview.strengths;
         usps[id] = [
           `${analysis.appName} offers ${
             analysis.featureAnalysis[0]?.feature || "unique features"
@@ -219,7 +222,7 @@ export async function performCompetitorAnalysis(
         competitiveAdvantages: advantages,
         uniqueSellingPropositions: usps,
       };
-    }
+    },
   );
 
   // Generate feature comparison
@@ -246,7 +249,7 @@ export async function performCompetitorAnalysis(
       });
 
       // Create comparison for top features
-      const topFeatures = Array.from(features).slice(0, 5);
+      const topFeatures = Array.from(features);
       const featureComparison = topFeatures.map((featureName) => {
         const ratings: Record<string, number> = {};
 
@@ -254,7 +257,7 @@ export async function performCompetitorAnalysis(
         appIds.forEach((id) => {
           const analysis = appAnalyses[id];
           const feature = analysis.featureAnalysis.find(
-            (f) => f.feature === featureName
+            (f) => f.feature === featureName,
           );
           ratings[id] = feature?.sentimentScore || 0;
         });
@@ -269,7 +272,7 @@ export async function performCompetitorAnalysis(
       });
 
       return { featureComparison };
-    }
+    },
   );
 
   // Generate sentiment comparison
@@ -292,7 +295,7 @@ export async function performCompetitorAnalysis(
 
         // Calculate positive/neutral/negative percentages from feature sentiments
         const sentiments = analysis.featureAnalysis.map(
-          (f) => f.sentimentScore
+          (f) => f.sentimentScore,
         );
         const positive = sentiments.filter((s) => s > 0.3).length;
         const negative = sentiments.filter((s) => s < -0.3).length;
@@ -308,7 +311,7 @@ export async function performCompetitorAnalysis(
       });
 
       return { sentimentComparison: comparison };
-    }
+    },
   );
 
   // Generate market gaps
@@ -338,7 +341,7 @@ export async function performCompetitorAnalysis(
           competitiveBarrier: "medium" as const,
         },
       ],
-    })
+    }),
   );
 
   // Generate user segment analysis
@@ -363,16 +366,14 @@ export async function performCompetitorAnalysis(
       });
 
       return {
-        userSegmentAnalysis: Array.from(segments)
-          .slice(0, 3)
-          .map((segment) => ({
-            segment,
-            currentLeader: appIds[0],
-            unmetNeeds: ["Better customization", "More affordable pricing"],
-            growthPotential: "medium" as const,
-          })),
+        userSegmentAnalysis: Array.from(segments).map((segment) => ({
+          segment,
+          currentLeader: appIds[0],
+          unmetNeeds: ["Better customization", "More affordable pricing"],
+          growthPotential: "medium" as const,
+        })),
       };
-    }
+    },
   );
 
   // Generate pricing analysis
@@ -417,7 +418,7 @@ export async function performCompetitorAnalysis(
           ],
         },
       };
-    }
+    },
   );
 
   // Generate recommendations
@@ -460,7 +461,7 @@ export async function performCompetitorAnalysis(
           potentialImpact: "medium" as const,
         },
       ],
-    })
+    }),
   );
 
   // Combine all parts into a complete analysis

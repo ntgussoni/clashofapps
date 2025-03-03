@@ -225,167 +225,87 @@ export default function CompareApps() {
     }
   }, [appIds, handleSubmit]);
 
-  // Add padding to the bottom of the content to account for the fixed input
-  const contentPaddingBottom = "pb-24"; // Adjust based on the height of your input
-
-  // Handle form submission for additional searches
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    // Extract app IDs from input
-    const newAppIds = input.split(/,\s*/).filter(Boolean);
-
-    // Navigate to the new URL with the updated app IDs
-    router.push(`/compare/${newAppIds.join("/")}`);
-  };
-
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BrandIcon className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">{siteConfig.name}</span>
-          </div>
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link
-              href="/#features"
-              className="text-sm font-medium hover:text-primary"
-            >
-              Features
-            </Link>
-            <Link
-              href="/#how-it-works"
-              className="text-sm font-medium hover:text-primary"
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/#pricing"
-              className="text-sm font-medium hover:text-primary"
-            >
-              Pricing
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <button className="text-sm font-medium hover:text-primary">
-              Log in
-            </button>
-            <button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-              Get Started
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="mx-auto flex w-full max-w-6xl flex-grow flex-col">
+      {/* Status indicator */}
+      <StatusIndicator currentStatus={currentStatus} />
 
-      {/* Main content */}
-      <main
-        className={`flex flex-grow flex-col items-center px-4 py-8 sm:px-6 lg:px-8 ${contentPaddingBottom}`}
-      >
-        <div className="mx-auto flex w-full max-w-6xl flex-grow flex-col">
-          {/* Status indicator */}
-          <StatusIndicator currentStatus={currentStatus} />
+      {/* App Info Cards */}
+      {(appInfos.length > 0 || loadingAppInfo) && (
+        <div className="mb-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Actual app info cards */}
+            {appInfos.map((appInfo) => (
+              <AppInfoCard key={appInfo.appId} appInfo={appInfo} />
+            ))}
 
-          {/* App Info Cards */}
-          {(appInfos.length > 0 || loadingAppInfo) && (
-            <div className="mb-8">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {/* Actual app info cards */}
-                {appInfos.map((appInfo) => (
-                  <AppInfoCard key={appInfo.appId} appInfo={appInfo} />
+            {/* Skeleton app info cards for loading apps */}
+            {loadingAppInfo &&
+              loadingAppIds
+                .filter((id) => !appInfos.some((info) => info.appId === id))
+                .map((appId) => (
+                  <SkeletonAppInfoCard key={`skeleton-${appId}`} />
                 ))}
+          </div>
+        </div>
+      )}
 
-                {/* Skeleton app info cards for loading apps */}
-                {loadingAppInfo &&
-                  loadingAppIds
-                    .filter((id) => !appInfos.some((info) => info.appId === id))
-                    .map((appId) => (
-                      <SkeletonAppInfoCard key={`skeleton-${appId}`} />
-                    ))}
-              </div>
-            </div>
-          )}
-
-          {/* Analysis Results - Always in columns with horizontal scroll */}
-          {(analysisResults.length > 0 || loadingAnalysis) && (
-            <div className="mb-6">
-              <h3 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-                App Analysis{" "}
-                {analysisResults.length > 1
-                  ? `(${analysisResults.length} Apps)`
-                  : ""}
-              </h3>
-              <div className="overflow-x-auto">
-                <div className="flex min-w-full space-x-6 pb-2">
-                  {/* For each app, show a column of analysis results */}
-                  {analysisResults.map((result) => (
-                    <AnalysisCard key={result.appName} result={result} />
-                  ))}
-
-                  {/* Skeleton analysis cards for loading apps */}
-                  {loadingAnalysis &&
-                    loadingAppIds
-                      .filter(
-                        (id) =>
-                          !analysisResults.some(
-                            (result) => result.appName === id,
-                          ),
-                      )
-                      .map((appId) => (
-                        <SkeletonAnalysisCard
-                          key={`skeleton-analysis-${appId}`}
-                        />
-                      ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Cross-App Comparison Section */}
-          {comparisonResults && (
-            <ComparisonSection comparisonResults={comparisonResults} />
-          )}
-
-          {/* Skeleton Comparison Section */}
-          {showComparisonSkeleton && !comparisonResults && (
-            <SkeletonComparisonSection />
-          )}
-
-          {/* Chat messages */}
-          {messages.length > 0 && (
-            <div className="mb-4 flex-grow space-y-4 overflow-y-auto">
-              {messages.map((message) => (
-                <div key={message.id} className="flex justify-end">
-                  <div className="max-w-3xl rounded-xl rounded-br-none bg-blue-500 p-4 text-white">
-                    <div className="prose dark:prose-invert prose-sm sm:prose-base">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
+      {/* Analysis Results - Always in columns with horizontal scroll */}
+      {(analysisResults.length > 0 || loadingAnalysis) && (
+        <div className="mb-6">
+          <h3 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+            App Analysis{" "}
+            {analysisResults.length > 1
+              ? `(${analysisResults.length} Apps)`
+              : ""}
+          </h3>
+          <div className="overflow-x-auto">
+            <div className="flex min-w-full space-x-6 pb-2">
+              {/* For each app, show a column of analysis results */}
+              {analysisResults.map((result) => (
+                <AnalysisCard key={result.appName} result={result} />
               ))}
-              <div ref={messagesEndRef} />
+
+              {/* Skeleton analysis cards for loading apps */}
+              {loadingAnalysis &&
+                loadingAppIds
+                  .filter(
+                    (id) =>
+                      !analysisResults.some((result) => result.appName === id),
+                  )
+                  .map((appId) => (
+                    <SkeletonAnalysisCard key={`skeleton-analysis-${appId}`} />
+                  ))}
             </div>
-          )}
+          </div>
         </div>
-      </main>
+      )}
 
-      {/* Footer */}
-      <footer className="w-full border-t border-gray-200 px-4 py-4 dark:border-gray-800 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl text-center text-sm text-gray-500 dark:text-gray-400">
-          {siteConfig.name} - Compare multiple apps and get insights from Google
-          Play reviews
+      {/* Cross-App Comparison Section */}
+      {/* {comparisonResults && (
+        <ComparisonSection comparisonResults={comparisonResults} />
+      )} */}
+
+      {/* Skeleton Comparison Section */}
+      {/* {showComparisonSkeleton && !comparisonResults && (
+        <SkeletonComparisonSection />
+      )} */}
+
+      {/* Chat messages */}
+      {messages.length > 0 && (
+        <div className="mb-4 flex-grow space-y-4 overflow-y-auto">
+          {messages.map((message) => (
+            <div key={message.id} className="flex justify-end">
+              <div className="max-w-3xl rounded-xl rounded-br-none bg-blue-500 p-4 text-white">
+                <div className="prose dark:prose-invert prose-sm sm:prose-base">
+                  {message.content}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
-      </footer>
-
-      {/* Floating input for additional searches */}
-      <FloatingInput
-        input={input}
-        handleInputChange={handleInputChange}
-        handleSubmit={handleFormSubmit}
-        isLoading={isLoading}
-      />
+      )}
     </div>
   );
 }

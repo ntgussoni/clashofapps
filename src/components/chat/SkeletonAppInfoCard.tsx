@@ -1,38 +1,60 @@
 import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function SkeletonAppInfoCard() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md min-w-[300px]"
+      className="min-w-[250px]" // Minimum width for readability
     >
-      <div className="flex justify-between items-start mb-3">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/5 animate-pulse"></div>
-        <div className="flex items-center bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded w-16 h-6 animate-pulse"></div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">App ID:</span>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mt-1 animate-pulse"></div>
-        </div>
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Reviews:</span>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mt-1 animate-pulse"></div>
-        </div>
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Installs:</span>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mt-1 animate-pulse"></div>
-        </div>
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Version:</span>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mt-1 animate-pulse"></div>
-        </div>
-        <div className="col-span-2">
-          <span className="text-gray-500 dark:text-gray-400">Categories:</span>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mt-1 animate-pulse"></div>
-        </div>
-      </div>
+      <Card className="h-full overflow-hidden border shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 animate-pulse rounded-md border bg-gray-200 dark:bg-gray-700"></div>
+              <div>
+                <div className="h-5 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="mt-0.5 h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+              </div>
+            </div>
+            <div className="h-4 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-3">
+          {/* Stats */}
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <div className="rounded-md border p-2">
+              <div className="mb-0.5 h-3 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+              <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+            </div>
+            <div className="rounded-md border p-2">
+              <div className="mb-0.5 h-3 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+              <div className="h-4 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+            </div>
+          </div>
+
+          {/* Version */}
+          <div className="mb-3 rounded-md border p-2">
+            <div className="mb-0.5 h-3 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+            <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+          </div>
+
+          {/* Categories */}
+          <div>
+            <div className="mb-1 h-3 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+            <div className="flex flex-wrap gap-1">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-5 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"
+                ></div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

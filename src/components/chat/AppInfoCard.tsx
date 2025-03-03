@@ -4,110 +4,110 @@ import type { AppInfoData } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StarIcon, DownloadIcon, TagIcon, InfoIcon } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface AppInfoCardProps {
   appInfo: AppInfoData;
 }
 
 export default function AppInfoCard({ appInfo }: AppInfoCardProps) {
+  // Helper function to get color class based on rating
+  const getRatingColorClass = (rating: number | string) => {
+    const numRating = typeof rating === "string" ? parseFloat(rating) : rating;
+    if (numRating >= 4.0) return "text-green-600 dark:text-green-400";
+    if (numRating >= 3.0) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="min-w-[250px]" // Minimum width for readability
     >
-      <Card className="overflow-hidden border shadow-md">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 pb-4 dark:from-slate-950/30 dark:to-blue-950/30">
+      <Card className="h-full overflow-hidden border shadow-sm">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {appInfo.icon && (
-                <div className="h-12 w-12 overflow-hidden rounded-lg border shadow-sm">
+                <div className="min-h-10 min-w-10 overflow-hidden rounded-md border">
                   <Image
                     src={appInfo.icon}
                     alt={`${appInfo.appName} icon`}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 object-cover"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 object-cover"
                   />
                 </div>
               )}
               <div>
-                <CardTitle className="text-xl font-bold">
+                <CardTitle className="text-lg font-medium">
                   {appInfo.appName}
                 </CardTitle>
-                <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
                   {appInfo.appId}
                 </p>
               </div>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center rounded-full bg-amber-100 px-3 py-1 dark:bg-amber-900/30">
-                    <StarIcon className="mr-1 h-4 w-4 text-amber-500" />
-                    <span className="font-medium text-amber-700 dark:text-amber-400">
-                      {typeof appInfo.rating === "number"
-                        ? appInfo.rating.toFixed(1)
-                        : Number(appInfo.rating).toFixed(1)}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>App rating based on user reviews</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex items-center">
+              <StarIcon className="mr-1 h-3 w-3 text-amber-500" />
+              <span
+                className={`text-sm font-medium ${getRatingColorClass(appInfo.rating)}`}
+              >
+                {typeof appInfo.rating === "number"
+                  ? appInfo.rating.toFixed(1)
+                  : Number(appInfo.rating).toFixed(1)}
+              </span>
+            </div>
           </div>
         </CardHeader>
 
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           {/* Stats */}
-          <div className="mb-6 grid grid-cols-2 gap-4">
-            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-              <div className="mb-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <StarIcon className="mr-1 h-4 w-4" />
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <div className="rounded-md border p-2">
+              <div className="mb-0.5 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                <StarIcon className="mr-1 h-3 w-3" />
                 <span>Reviews</span>
               </div>
-              <p className="text-lg font-semibold">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {appInfo.reviewCount.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-              <div className="mb-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <DownloadIcon className="mr-1 h-4 w-4" />
+            <div className="rounded-md border p-2">
+              <div className="mb-0.5 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                <DownloadIcon className="mr-1 h-3 w-3" />
                 <span>Installs</span>
               </div>
-              <p className="text-lg font-semibold">{appInfo.installs}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {appInfo.installs}
+              </p>
             </div>
           </div>
 
           {/* Version */}
-          <div className="mb-6 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-            <div className="mb-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <InfoIcon className="mr-1 h-4 w-4" />
+          <div className="mb-3 rounded-md border p-2">
+            <div className="mb-0.5 flex items-center text-xs text-gray-500 dark:text-gray-400">
+              <InfoIcon className="mr-1 h-3 w-3" />
               <span>Version</span>
             </div>
-            <p className="font-medium">{appInfo.version}</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {appInfo.version}
+            </p>
           </div>
 
           {/* Categories */}
           <div>
-            <div className="mb-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <TagIcon className="mr-1 h-4 w-4" />
+            <div className="mb-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
+              <TagIcon className="mr-1 h-3 w-3" />
               <span>Categories</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1">
               {appInfo.categories.map((category, index) => (
                 <Badge
                   key={index}
                   variant="outline"
-                  className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
+                  className="px-1.5 py-0 text-xs"
                 >
                   {category}
                 </Badge>

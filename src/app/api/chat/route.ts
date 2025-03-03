@@ -275,8 +275,7 @@ function compareFeatures(
     .sort(
       (a, b) =>
         b.appCoverage - a.appCoverage || b.totalMentions - a.totalMentions,
-    )
-    .slice(0, 10); // Get top 10 features
+    );
 }
 
 function compareStrengths(appAnalyses: AppAnalysisResult[]): StrengthsResult {
@@ -377,7 +376,7 @@ function generateRecommendationSummary(
       recommendations.push(
         `Focus on the strengths of ${
           highestRatedApp.appInfo.appName
-        } such as ${strengths.slice(0, 2).join(" and ")}.`,
+        } such as ${strengths.join(" and ")}.`,
       );
     }
   }
@@ -387,7 +386,6 @@ function generateRecommendationSummary(
   if (commonWeaknesses.length > 0) {
     recommendations.push(
       `Address common weaknesses across all apps: ${commonWeaknesses
-        .slice(0, 2)
         .map((w) => w.weakness)
         .join(" and ")}.`,
     );
@@ -441,7 +439,6 @@ function generateSingleAppAnalysisText(appAnalysis: AppAnalysisResult): string {
     `### Market Position\n${analysis.overview.marketPosition}\n\n` +
     `### User Demographics\n${analysis.overview.targetDemographic}\n\n` +
     `### Top Features\n${analysis.featureAnalysis
-      .slice(0, 5)
       .map(
         (f) =>
           `- **${f.feature}**: Sentiment ${f.sentimentScore.toFixed(
@@ -458,7 +455,6 @@ function generateSingleAppAnalysisText(appAnalysis: AppAnalysisResult): string {
     )}%\n` +
     `Willingness to Pay: ${analysis.pricingPerception.willingness}\n\n` +
     `### Top Recommendations\n${analysis.recommendedActions
-      .slice(0, 3)
       .map(
         (r) =>
           `- **${r.action}** (Priority: ${r.priority}, Impact: ${r.impact})`,
@@ -500,7 +496,7 @@ function generateComparisonAnalysisText(
     `\n\n### Feature Comparison\n` +
     (comparisonData.featureComparison.length > 0
       ? comparisonData.featureComparison
-          .slice(0, 5)
+
           .map(
             (f) =>
               `- **${f.feature}**: Mentioned in ${(f.appCoverage * 100).toFixed(
@@ -572,7 +568,7 @@ async function processAppAnalysis(
       weaknesses: analysis.overview.weaknesses,
       marketPosition: analysis.overview.marketPosition,
       userDemographics: analysis.overview.targetDemographic,
-      topFeatures: analysis.featureAnalysis.slice(0, 5).map((f) => ({
+      topFeatures: analysis.featureAnalysis.map((f) => ({
         feature: f.feature,
         sentiment: f.sentimentScore.toFixed(2),
         mentions: f.mentionCount,
@@ -583,7 +579,7 @@ async function processAppAnalysis(
           analysis.pricingPerception.pricingComplaints.toFixed(1),
         willingness: analysis.pricingPerception.willingness,
       },
-      recommendations: analysis.recommendedActions.slice(0, 3).map((r) => ({
+      recommendations: analysis.recommendedActions.map((r) => ({
         action: r.action,
         priority: r.priority,
         impact: r.impact,
@@ -711,8 +707,8 @@ export async function POST(req: NextRequest) {
             // Stream a summarized response using the AI model
             const systemPrompt =
               newAppIds.length === 1
-                ? "You are an expert app analyst. Summarize the following app analysis in a professional but friendly tone. Highlight the most important insights and action items."
-                : "You are an expert app analyst. Summarize the following app comparison in a professional but friendly tone. Focus on the key differences between the apps and highlight actionable insights based on the comparison.";
+                ? "You are an expert app analyst whose job is to help the user analyze and find gaps on their competitors. Summarize the following app analysis in a professional to the point but friendly tone. Highlight the most important insights and action items."
+                : "You are an expert app analyst whose job is to help the user analyze and find gaps on their competitors. Summarize the following app comparison in a professional to the point but friendly tone. Focus on the key differences between the apps and highlight actionable insights based on the comparison.";
 
             const result = streamText({
               model: openai("gpt-4o-mini"),

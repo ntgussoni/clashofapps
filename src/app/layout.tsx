@@ -5,6 +5,8 @@ import { type Metadata } from "next";
 
 import { TRPCReactProvider } from "@/trpc/react";
 import { siteConfig } from "@/lib/config";
+import { AppHeader } from "@/components/app-header";
+import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
   title: siteConfig.name,
@@ -17,8 +19,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${GeistSans.variable}`}>
-      <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+      <body className="flex min-h-dvh flex-col">
+        <TRPCReactProvider>
+          {/* The header and main content will be handled by nested layouts when needed */}
+          {children}
+          {/* Footer is shown on all pages except auth pages */}
+        </TRPCReactProvider>
       </body>
     </html>
   );

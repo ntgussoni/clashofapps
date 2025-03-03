@@ -39,25 +39,16 @@ export default function AnalysisCard({ result }: AnalysisCardProps) {
     sentiment: string,
   ): "default" | "destructive" | "outline" | "secondary" | "success" => {
     const value = parseFloat(sentiment);
-    if (value > 0.5) return "success";
-    if (value < 0) return "destructive";
-    return "secondary";
+    if (value > 0.5) return "outline";
+    if (value < 0) return "outline";
+    return "outline";
   };
 
   // Helper function to get priority badge variant
   const getPriorityVariant = (
     priority: string,
   ): "default" | "destructive" | "outline" | "secondary" => {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "destructive";
-      case "medium":
-        return "default";
-      case "low":
-        return "secondary";
-      default:
-        return "outline";
-    }
+    return "outline";
   };
 
   // Format sentiment value for display
@@ -72,69 +63,65 @@ export default function AnalysisCard({ result }: AnalysisCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="w-full overflow-hidden border shadow-md">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-4 dark:from-blue-950/30 dark:to-indigo-950/30">
+      <Card className="w-full min-w-[500px] overflow-hidden border shadow-sm">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold">
+            <CardTitle className="text-lg font-medium">
               {result.appName}
             </CardTitle>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge className="px-3 py-1">Analysis Results</Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Based on user reviews and market data</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Badge variant="outline" className="px-2 py-0.5 text-xs">
+              Analysis
+            </Badge>
           </div>
-          <CardDescription className="text-sm">
-            Comprehensive analysis of user sentiment and market position
+          <CardDescription className="text-xs">
+            Based on user reviews and market data
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="p-4 pt-6">
+        <CardContent className="p-3 pt-4">
           <Tabs defaultValue="strengths" className="w-full">
-            <TabsList className="mb-4 grid w-full grid-cols-3">
+            <TabsList className="mb-3 grid w-full grid-cols-3">
               <TabsTrigger
                 value="strengths"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 text-xs"
               >
-                <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                <CheckCircle2Icon className="h-3 w-3" />
                 Strengths
               </TabsTrigger>
               <TabsTrigger
                 value="weaknesses"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 text-xs"
               >
-                <AlertCircleIcon className="h-4 w-4 text-red-500" />
+                <AlertCircleIcon className="h-3 w-3" />
                 Weaknesses
               </TabsTrigger>
-              <TabsTrigger value="features" className="flex items-center gap-1">
-                <StarIcon className="h-4 w-4 text-yellow-500" />
+              <TabsTrigger
+                value="features"
+                className="flex items-center gap-1 text-xs"
+              >
+                <StarIcon className="h-3 w-3" />
                 Features
               </TabsTrigger>
             </TabsList>
 
             {/* Strengths Tab */}
-            <TabsContent value="strengths" className="space-y-3">
-              <div className="rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
-                <h3 className="mb-2 flex items-center gap-2 font-medium text-green-700 dark:text-green-400">
-                  <ArrowUpIcon className="h-4 w-4" />
+            <TabsContent value="strengths" className="space-y-2">
+              <div className="rounded-md border p-2">
+                <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <ArrowUpIcon className="h-3 w-3" />
                   Key Strengths
                 </h3>
-                <ul className="space-y-2">
+                <ul className="space-y-1">
                   {result.strengths.map((strength, i) => (
                     <motion.li
                       key={i}
-                      initial={{ opacity: 0, x: -10 }}
+                      initial={{ opacity: 0, x: -5 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                      transition={{ duration: 0.2, delay: i * 0.05 }}
                       className="flex items-start"
                     >
-                      <span className="mr-2 mt-0.5 text-green-500">•</span>
-                      <span className="text-sm text-green-800 dark:text-green-300">
+                      <span className="mr-1 mt-0.5 text-gray-400">•</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">
                         {strength}
                       </span>
                     </motion.li>
@@ -144,23 +131,23 @@ export default function AnalysisCard({ result }: AnalysisCardProps) {
             </TabsContent>
 
             {/* Weaknesses Tab */}
-            <TabsContent value="weaknesses" className="space-y-3">
-              <div className="rounded-lg bg-red-50 p-3 dark:bg-red-900/20">
-                <h3 className="mb-2 flex items-center gap-2 font-medium text-red-700 dark:text-red-400">
-                  <ArrowDownIcon className="h-4 w-4" />
+            <TabsContent value="weaknesses" className="space-y-2">
+              <div className="rounded-md border p-2">
+                <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <ArrowDownIcon className="h-3 w-3" />
                   Areas for Improvement
                 </h3>
-                <ul className="space-y-2">
+                <ul className="space-y-1">
                   {result.weaknesses.map((weakness, i) => (
                     <motion.li
                       key={i}
-                      initial={{ opacity: 0, x: -10 }}
+                      initial={{ opacity: 0, x: -5 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
+                      transition={{ duration: 0.2, delay: i * 0.05 }}
                       className="flex items-start"
                     >
-                      <span className="mr-2 mt-0.5 text-red-500">•</span>
-                      <span className="text-sm text-red-800 dark:text-red-300">
+                      <span className="mr-1 mt-0.5 text-gray-400">•</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">
                         {weakness}
                       </span>
                     </motion.li>
@@ -170,43 +157,41 @@ export default function AnalysisCard({ result }: AnalysisCardProps) {
             </TabsContent>
 
             {/* Features Tab */}
-            <TabsContent value="features" className="space-y-3">
-              <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
-                <h3 className="mb-2 flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400">
-                  <StarIcon className="h-4 w-4" />
-                  Top Features by Sentiment
+            <TabsContent value="features" className="space-y-2">
+              <div className="rounded-md border p-2">
+                <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <StarIcon className="h-3 w-3" />
+                  Top Features
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {result.topFeatures.map((feature, i) => (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.1 }}
-                      className="rounded-md bg-white p-2 shadow-sm dark:bg-gray-800"
+                      transition={{ duration: 0.2, delay: i * 0.05 }}
+                      className="border-b border-gray-100 pb-1 last:border-0 dark:border-gray-700"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                           {feature.feature}
                         </span>
                         <div className="flex items-center gap-2">
-                          <Badge
-                            variant={getSentimentVariant(feature.sentiment)}
-                          >
-                            {formatSentiment(feature.sentiment)}
-                          </Badge>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {feature.mentions} mentions
+                            {formatSentiment(feature.sentiment)}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {feature.mentions}
                           </span>
                         </div>
                       </div>
-                      <div className="mt-2">
+                      <div className="mt-1">
                         <Progress
                           value={Math.max(
                             0,
                             (parseFloat(feature.sentiment) + 1) * 50,
                           )}
-                          className="h-1.5"
+                          className="h-1"
                         />
                       </div>
                     </motion.div>
@@ -217,107 +202,85 @@ export default function AnalysisCard({ result }: AnalysisCardProps) {
           </Tabs>
 
           {/* Market Position & Demographics */}
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Card className="overflow-hidden border shadow-sm">
-              <CardHeader className="bg-blue-50 px-4 py-2 dark:bg-blue-900/20">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <TrendingUpIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  Market Position
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 py-3">
-                <p className="text-sm">{result.marketPosition}</p>
-              </CardContent>
-            </Card>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-md border p-2">
+              <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                <TrendingUpIcon className="h-3 w-3" />
+                Market Position
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                {result.marketPosition}
+              </p>
+            </div>
 
-            <Card className="overflow-hidden border shadow-sm">
-              <CardHeader className="bg-purple-50 px-4 py-2 dark:bg-purple-900/20">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <UsersIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  User Demographics
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 py-3">
-                <p className="text-sm">{result.userDemographics}</p>
-              </CardContent>
-            </Card>
+            <div className="rounded-md border p-2">
+              <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                <UsersIcon className="h-3 w-3" />
+                User Demographics
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                {result.userDemographics}
+              </p>
+            </div>
           </div>
 
           {/* Pricing Perception */}
-          <Card className="mt-4 overflow-hidden border shadow-sm">
-            <CardHeader className="bg-emerald-50 px-4 py-2 dark:bg-emerald-900/20">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <DollarSignIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                Pricing Perception
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 py-3">
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Value for Money
-                  </p>
-                  <p
-                    className={`mt-1 text-base font-semibold ${
-                      parseFloat(result.pricing.valueForMoney) > 0.3
-                        ? "text-green-600 dark:text-green-400"
-                        : parseFloat(result.pricing.valueForMoney) < 0
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-gray-700 dark:text-gray-300"
-                    }`}
-                  >
-                    {formatSentiment(result.pricing.valueForMoney)}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Complaints
-                  </p>
-                  <p className="mt-1 text-base font-semibold">
-                    {result.pricing.pricingComplaints}%
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Willingness
-                  </p>
-                  <p className="mt-1 text-base font-semibold">
-                    {result.pricing.willingness}
-                  </p>
-                </div>
+          <div className="mt-3 rounded-md border p-2">
+            <h3 className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+              <DollarSignIcon className="h-3 w-3" />
+              Pricing Perception
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-md border p-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Value
+                </p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {formatSentiment(result.pricing.valueForMoney)}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="rounded-md border p-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Complaints
+                </p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {result.pricing.pricingComplaints}%
+                </p>
+              </div>
+              <div className="rounded-md border p-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Willingness
+                </p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {result.pricing.willingness}
+                </p>
+              </div>
+            </div>
+          </div>
         </CardContent>
 
-        <CardFooter className="bg-gray-50 p-4 dark:bg-gray-800/50">
-          <div className="w-full space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-semibold">
-              <LightbulbIcon className="h-4 w-4 text-amber-500" />
-              Strategic Recommendations
+        <CardFooter className="border-t p-3">
+          <div className="w-full space-y-2">
+            <h4 className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+              <LightbulbIcon className="h-3 w-3" />
+              Recommendations
             </h4>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2 md:grid-cols-2">
               {result.recommendations.map((rec, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: i * 0.1 }}
-                  className="rounded-lg border bg-white p-3 shadow-sm dark:bg-gray-800"
+                  transition={{ duration: 0.2, delay: i * 0.05 }}
+                  className="rounded-md border p-2"
                 >
-                  <div className="font-medium text-gray-900 dark:text-gray-100">
+                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {rec.action}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant={getPriorityVariant(rec.priority)}>
-                      Priority: {rec.priority}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
-                    >
-                      Impact: {rec.impact}
-                    </Badge>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {rec.priority} priority • {rec.impact} impact
+                    </span>
                   </div>
                 </motion.div>
               ))}
