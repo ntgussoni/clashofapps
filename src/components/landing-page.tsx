@@ -1,24 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { HeroSection } from "@/components/hero-section";
 import { FeaturesSection } from "@/components/features-section";
 import { HowItWorksSection } from "@/components/how-it-works-section";
 import { PricingSection } from "@/components/pricing-section";
 import { Footer } from "@/components/footer";
-import { ComparisonSection } from "@/components/comparison-section";
 import { siteConfig } from "@/lib/config";
 import { BrandIcon } from "@/components/ui/brand-icon";
+import Link from "next/link";
 
 export function LandingPage() {
-  const [isComparing, setIsComparing] = useState(false);
-  const [appLinks, setAppLinks] = useState<string[]>([]);
-
-  const handleStartComparison = (links: string[]) => {
-    setAppLinks(links);
-    setIsComparing(true);
-  };
-
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 border-b bg-background">
@@ -28,24 +19,24 @@ export function LandingPage() {
             <span className="text-lg font-bold">{siteConfig.name}</span>
           </div>
           <nav className="hidden items-center gap-6 md:flex">
-            <a
+            <Link
               href="#features"
               className="text-sm font-medium hover:text-primary"
             >
               Features
-            </a>
-            <a
+            </Link>
+            <Link
               href="#how-it-works"
               className="text-sm font-medium hover:text-primary"
             >
               How It Works
-            </a>
-            <a
+            </Link>
+            <Link
               href="#pricing"
               className="text-sm font-medium hover:text-primary"
             >
               Pricing
-            </a>
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <button className="text-sm font-medium hover:text-primary">
@@ -59,19 +50,10 @@ export function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <HeroSection
-          onStartComparison={handleStartComparison}
-          isComparing={isComparing}
-        />
-        {isComparing ? (
-          <ComparisonSection appLinks={appLinks} />
-        ) : (
-          <>
-            <FeaturesSection />
-            <HowItWorksSection />
-            <PricingSection />
-          </>
-        )}
+        <HeroSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <PricingSection />
       </main>
 
       <Footer />

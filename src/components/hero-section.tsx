@@ -1,19 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, ArrowRight } from "lucide-react";
 
-interface HeroSectionProps {
-  onStartComparison: (links: string[]) => void;
-  isComparing: boolean;
-}
-
-export function HeroSection({
-  onStartComparison,
-  isComparing,
-}: HeroSectionProps) {
+export function HeroSection() {
+  const router = useRouter();
   const [links, setLinks] = useState<string[]>([""]);
 
   const handleAddLink = () => {
@@ -27,7 +21,38 @@ export function HeroSection({
   };
 
   const handleCompare = () => {
-    onStartComparison(links);
+    const validLinks = links.filter((link) => link.trim() !== "");
+
+    if (validLinks.length === 0) return;
+
+    const appIds = validLinks.map((link) => {
+      if (!link.includes("/") && !link.includes("https")) {
+        return link;
+      }
+
+      try {
+        const url = new URL(link);
+        const pathParts = url.pathname.split("/");
+
+        if (url.hostname === "play.google.com") {
+          const params = new URLSearchParams(url.search);
+          const appId = params.get("id");
+          if (appId) return appId;
+        }
+
+        for (let i = 0; i < pathParts.length; i++) {
+          if (pathParts[i] === "id" && i + 1 < pathParts.length) {
+            return pathParts[i + 1];
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing URL:", e);
+      }
+
+      return link;
+    });
+
+    router.push(`/compare/${appIds.join("/")}`);
   };
 
   return (
