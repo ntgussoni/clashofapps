@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
 import Image from "next/image";
 import { useChat } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
@@ -11,6 +11,11 @@ import {
   type AppAnalysis,
   type CompetitorAnalysis,
 } from "@/server/review-analyzer/types";
+import type {
+  AppInfoData,
+  AnalysisResultsData,
+  ComparisonResultsData,
+} from "@/components/types";
 
 // Import components
 import AppInfoCard from "@/components/chat/AppInfoCard";
@@ -33,21 +38,37 @@ type StatusDataItem = {
   message: string;
 };
 
+// Extend the AppInfo type to match what comes from the server
+interface AppInfoWithIcon extends AppInfo {
+  icon: string;
+  rating: number | string;
+  reviewCount: number;
+}
+
+// Type for the data we receive from the server
 type DataItem =
   | StatusDataItem
-  | ({ type: "app_info" } & AppInfo)
-  | ({ type: "analysis_results" } & AppAnalysis)
-  | ({ type: "comparison_results" } & CompetitorAnalysis);
+  | ({ type: "app_info" } & AppInfoWithIcon)
+  | ({ type: "analysis_results" } & AnalysisResultsData)
+  | ({ type: "comparison_results" } & ComparisonResultsData);
+
+// Memoized components to prevent unnecessary re-renders
+const MemoizedAppInfoCard = memo(AppInfoCard);
+const MemoizedAnalysisCard = memo(AnalysisCard);
+const MemoizedSkeletonAppInfoCard = memo(SkeletonAppInfoCard);
+const MemoizedSkeletonAnalysisCard = memo(SkeletonAnalysisCard);
 
 export default function CompareApps() {
   const params = useParams();
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
-  const [appInfos, setAppInfos] = useState<AppInfo[]>([]);
-  const [analysisResults, setAnalysisResults] = useState<AppAnalysis[]>([]);
+  const [appInfos, setAppInfos] = useState<AppInfoWithIcon[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResultsData[]>(
+    [],
+  );
   const [comparisonResults, setComparisonResults] =
-    useState<CompetitorAnalysis | null>(null);
+    useState<ComparisonResultsData | null>(null);
 
   // Add state to track loading apps and specific loading states
   const [loadingAppIds, setLoadingAppIds] = useState<string[]>([]);
@@ -55,15 +76,25 @@ export default function CompareApps() {
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [showComparisonSkeleton, setShowComparisonSkeleton] = useState(false);
 
+  // For batching updates to prevent excessive re-renders
+  const [pendingAppInfos, setPendingAppInfos] = useState<
+    Record<string, AppInfoWithIcon>
+  >({});
+  const [pendingAnalysisResults, setPendingAnalysisResults] = useState<
+    Record<string, AnalysisResultsData>
+  >({});
+
   // Track processed data items to prevent duplicate processing
   const processedDataRef = useRef(new Set<string>());
 
   // Get app IDs from URL params
-  const appIds = Array.isArray(params.appIds)
-    ? params.appIds
-    : params.appIds
-      ? [params.appIds]
-      : [];
+  const appIds = useMemo(() => {
+    return Array.isArray(params.appIds)
+      ? params.appIds
+      : params.appIds
+        ? [params.appIds]
+        : [];
+  }, [params.appIds]);
 
   // Use the useChat hook from Vercel AI SDK
   const { messages, input, handleInputChange, handleSubmit, isLoading, data } =
@@ -73,88 +104,169 @@ export default function CompareApps() {
       id: appIds.join("-"),
     });
 
-  // Process stream data when it arrives - using useCallback to memoize the handler
-  const processDataItem = useCallback((item: unknown) => {
-    if (!item || typeof item !== "object") return;
+  // Memoize the skeletons loading app list to prevent re-calculations
+  const skeletonLoadingAppIds = useMemo(() => {
+    if (!loadingAppInfo) return [];
+    return loadingAppIds.filter(
+      (id) => !appInfos.some((info) => info.appId === id),
+    );
+  }, [loadingAppInfo, loadingAppIds, appInfos]);
 
-    // Generate a unique ID for this data item to prevent duplicate processing
-    const itemId = JSON.stringify(item);
-    if (processedDataRef.current.has(itemId)) return;
-    processedDataRef.current.add(itemId);
+  // Memoize the analysis skeleton loading list
+  const skeletonAnalysisAppIds = useMemo(() => {
+    if (!loadingAnalysis) return [];
+    return loadingAppIds.filter(
+      (id) => !analysisResults.some((result) => result.appName === id),
+    );
+  }, [loadingAnalysis, loadingAppIds, analysisResults]);
 
-    // Try to cast to our DataItem type
-    const dataItem = item as Partial<DataItem>;
+  // Batch update function for app infos - to reduce re-renders
+  const flushPendingAppInfos = useCallback(() => {
+    setPendingAppInfos((current) => {
+      if (Object.keys(current).length === 0) return current;
 
-    if (dataItem.type) {
-      switch (dataItem.type) {
-        case "status": {
-          const statusItem = dataItem as StatusDataItem;
-          if (statusItem.message) {
-            setCurrentStatus(statusItem.message);
+      setAppInfos((prev) => {
+        const updatedAppInfos = [...prev];
+        const newAppInfos: AppInfoWithIcon[] = [];
 
-            // Check if we're starting to analyze apps
-            if (statusItem.status === "analyzing") {
-              const message = statusItem.message;
-
-              // Show comparison skeleton only when explicitly generating comparison
-              if (message.includes("Generating cross-app comparison")) {
-                setShowComparisonSkeleton(true);
-              }
-              // Show app info skeleton when fetching app data
-              else if (message.includes("Fetching data for app")) {
-                setLoadingAppInfo(true);
-                // Extract app ID from the message if possible
-                const regex = /Fetching data for app\s+(.*?)\.\.\.$/;
-                const match = regex.exec(message);
-                if (match?.[1]) {
-                  const appId = match[1].trim();
-                  setLoadingAppIds((prev) => {
-                    if (!prev.includes(appId)) {
-                      return [...prev, appId];
-                    }
-                    return prev;
-                  });
-                }
-              }
-              // Show analysis skeleton when analyzing reviews
-              else if (
-                message.includes("Analyzing") &&
-                message.includes("reviews")
-              ) {
-                setLoadingAnalysis(true);
-              }
-            } else if (statusItem.status === "completed") {
-              // Clear all loading states when completed
-              setLoadingAppIds([]);
-              setLoadingAppInfo(false);
-              setLoadingAnalysis(false);
-              setShowComparisonSkeleton(false);
-            }
+        Object.values(current).forEach((appInfo) => {
+          const existingIndex = updatedAppInfos.findIndex(
+            (info) => info.appId === appInfo.appId,
+          );
+          if (existingIndex >= 0) {
+            updatedAppInfos[existingIndex] = appInfo;
+          } else {
+            newAppInfos.push(appInfo);
           }
-          break;
-        }
-        case "app_info": {
-          // Add to app infos if not already present
-          setAppInfos((prev) => {
-            const appInfo = dataItem as AppInfo & { type: string };
+        });
 
-            // App info is loaded, but we're still analyzing
+        return [...updatedAppInfos, ...newAppInfos];
+      });
+
+      return {};
+    });
+  }, []);
+
+  // Batch update function for analysis results - to reduce re-renders
+  const flushPendingAnalysisResults = useCallback(() => {
+    setPendingAnalysisResults((current) => {
+      if (Object.keys(current).length === 0) return current;
+
+      setAnalysisResults((prev) => {
+        const updatedResults = [...prev];
+        const newResults: AnalysisResultsData[] = [];
+
+        Object.values(current).forEach((result) => {
+          const existingIndex = updatedResults.findIndex(
+            (r) => r.appName === result.appName,
+          );
+          if (existingIndex >= 0) {
+            updatedResults[existingIndex] = result;
+          } else {
+            newResults.push(result);
+          }
+        });
+
+        return [...updatedResults, ...newResults];
+      });
+
+      return {};
+    });
+  }, []);
+
+  // Set up flush interval for batched updates
+  useEffect(() => {
+    const flushInterval = setInterval(() => {
+      flushPendingAppInfos();
+      flushPendingAnalysisResults();
+    }, 300); // Batch updates every 300ms
+
+    return () => clearInterval(flushInterval);
+  }, [flushPendingAppInfos, flushPendingAnalysisResults]);
+
+  // Process stream data when it arrives - using useCallback to memoize the handler
+  const processDataItem = useCallback(
+    (item: unknown) => {
+      if (!item || typeof item !== "object") return;
+
+      // Generate a unique ID for this data item to prevent duplicate processing
+      const itemId = JSON.stringify(item);
+      if (processedDataRef.current.has(itemId)) return;
+      processedDataRef.current.add(itemId);
+
+      // Try to cast to our DataItem type
+      const dataItem = item as Partial<DataItem>;
+
+      if (dataItem.type) {
+        switch (dataItem.type) {
+          case "status": {
+            const statusItem = dataItem as StatusDataItem;
+            if (statusItem.message) {
+              setCurrentStatus(statusItem.message);
+
+              // Check if we're starting to analyze apps
+              if (statusItem.status === "analyzing") {
+                const message = statusItem.message;
+
+                // Show comparison skeleton only when explicitly generating comparison
+                if (message.includes("Generating cross-app comparison")) {
+                  setShowComparisonSkeleton(true);
+                }
+                // Show app info skeleton when fetching app data
+                else if (message.includes("Fetching data for app")) {
+                  setLoadingAppInfo(true);
+                  // Extract app ID from the message if possible
+                  const regex = /Fetching data for app\s+(.*?)\.\.\.$/;
+                  const match = regex.exec(message);
+                  if (match?.[1]) {
+                    const appId = match[1].trim();
+                    setLoadingAppIds((prev) => {
+                      if (!prev.includes(appId)) {
+                        return [...prev, appId];
+                      }
+                      return prev;
+                    });
+                  }
+                }
+                // Show analysis skeleton when analyzing reviews
+                else if (
+                  message.includes("Analyzing") &&
+                  message.includes("reviews")
+                ) {
+                  setLoadingAnalysis(true);
+                }
+              } else if (statusItem.status === "completed") {
+                // Clear all loading states when completed
+                setLoadingAppIds([]);
+                setLoadingAppInfo(false);
+                setLoadingAnalysis(false);
+                setShowComparisonSkeleton(false);
+
+                // Final flush of pending updates
+                flushPendingAppInfos();
+                flushPendingAnalysisResults();
+              }
+            }
+            break;
+          }
+          case "app_info": {
+            // Batch app info updates instead of immediate state update
+            const appInfo = dataItem as AppInfoWithIcon & { type: string };
             setLoadingAppInfo(false);
 
-            // Check if this app info already exists
-            if (prev.some((info) => info.appId === appInfo.appId)) {
-              return prev;
-            }
-            return [...prev, appInfo];
-          });
-          break;
-        }
-        case "analysis_results": {
-          // Add or update analysis results
-          setAnalysisResults((prev) => {
-            const result = dataItem as AppAnalysis & { type: string };
+            setPendingAppInfos((prev) => {
+              // Skip if this app info already exists in the main state
+              if (appInfos.some((info) => info.appId === appInfo.appId)) {
+                return prev;
+              }
+              return { ...prev, [appInfo.appId]: appInfo };
+            });
 
-            // Analysis is complete for this app
+            break;
+          }
+          case "analysis_results": {
+            // Batch analysis results updates
+            const result = dataItem as AnalysisResultsData & { type: string };
             setLoadingAnalysis(false);
 
             // Remove this app from loading state completely
@@ -162,30 +274,26 @@ export default function CompareApps() {
               ids.filter((id) => id !== result.appName),
             );
 
-            const index = prev.findIndex((r) => r.appName === result.appName);
+            setPendingAnalysisResults((prev) => {
+              return { ...prev, [result.appName]: result };
+            });
 
-            if (index >= 0) {
-              const updated = [...prev];
-              updated[index] = result;
-              return updated;
-            }
-
-            return [...prev, result];
-          });
-          break;
-        }
-        case "comparison_results": {
-          // Set comparison results
-          const comparisonItem = dataItem as CompetitorAnalysis & {
-            type: string;
-          };
-          setComparisonResults(comparisonItem);
-          setShowComparisonSkeleton(false);
-          break;
+            break;
+          }
+          case "comparison_results": {
+            // Set comparison results
+            const comparisonItem = dataItem as ComparisonResultsData & {
+              type: string;
+            };
+            setComparisonResults(comparisonItem);
+            setShowComparisonSkeleton(false);
+            break;
+          }
         }
       }
-    }
-  }, []);
+    },
+    [appInfos, flushPendingAppInfos, flushPendingAnalysisResults],
+  );
 
   // Process data items when they arrive
   useEffect(() => {
@@ -217,6 +325,13 @@ export default function CompareApps() {
       // Clear processed data items when submitting a new request
       processedDataRef.current.clear();
 
+      // Reset all state
+      setAppInfos([]);
+      setAnalysisResults([]);
+      setComparisonResults(null);
+      setPendingAppInfos({});
+      setPendingAnalysisResults({});
+
       // Automatically submit the form with the app IDs
       // Use a type assertion to unknown first to avoid type errors
       handleSubmit(
@@ -236,16 +351,16 @@ export default function CompareApps() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* Actual app info cards */}
             {appInfos.map((appInfo) => (
-              <AppInfoCard key={appInfo.appId} appInfo={appInfo} />
+              <MemoizedAppInfoCard
+                key={appInfo.appId}
+                appInfo={appInfo as unknown as AppInfoData}
+              />
             ))}
 
             {/* Skeleton app info cards for loading apps */}
-            {loadingAppInfo &&
-              loadingAppIds
-                .filter((id) => !appInfos.some((info) => info.appId === id))
-                .map((appId) => (
-                  <SkeletonAppInfoCard key={`skeleton-${appId}`} />
-                ))}
+            {skeletonLoadingAppIds.map((appId) => (
+              <MemoizedSkeletonAppInfoCard key={`skeleton-${appId}`} />
+            ))}
           </div>
         </div>
       )}
@@ -263,33 +378,32 @@ export default function CompareApps() {
             <div className="flex min-w-full space-x-6 pb-2">
               {/* For each app, show a column of analysis results */}
               {analysisResults.map((result) => (
-                <AnalysisCard key={result.appName} result={result} />
+                <MemoizedAnalysisCard
+                  key={result.appName}
+                  result={result as unknown as AnalysisResultsData}
+                />
               ))}
 
               {/* Skeleton analysis cards for loading apps */}
-              {loadingAnalysis &&
-                loadingAppIds
-                  .filter(
-                    (id) =>
-                      !analysisResults.some((result) => result.appName === id),
-                  )
-                  .map((appId) => (
-                    <SkeletonAnalysisCard key={`skeleton-analysis-${appId}`} />
-                  ))}
+              {skeletonAnalysisAppIds.map((appId) => (
+                <MemoizedSkeletonAnalysisCard
+                  key={`skeleton-analysis-${appId}`}
+                />
+              ))}
             </div>
           </div>
         </div>
       )}
 
       {/* Cross-App Comparison Section */}
-      {/* {comparisonResults && (
+      {comparisonResults && (
         <ComparisonSection comparisonResults={comparisonResults} />
-      )} */}
+      )}
 
       {/* Skeleton Comparison Section */}
-      {/* {showComparisonSkeleton && !comparisonResults && (
+      {showComparisonSkeleton && !comparisonResults && (
         <SkeletonComparisonSection />
-      )} */}
+      )}
 
       {/* Chat messages */}
       {messages.length > 0 && (
