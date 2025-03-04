@@ -1,0 +1,45 @@
+diff --git a/node_modules/google-play-scraper/lib/app.js b/node_modules/google-play-scraper/lib/app.js
+index 1bd082e..5cb5f35 100644
+--- a/node_modules/google-play-scraper/lib/app.js
++++ b/node_modules/google-play-scraper/lib/app.js
+@@ -13,13 +13,13 @@ function app (opts) {
+       throw Error('appId missing');
+     }
+ 
+-    opts.lang = opts.lang || 'en';
+-    opts.country = opts.country || 'us';
++    opts.lang = opts.lang 
++    opts.country = opts.country 
+ 
+     const qs = queryString.stringify({
+       id: opts.appId,
+       hl: opts.lang,
+-      gl: opts.country
++      ...(opts.country && { gl: opts.country })
+     });
+     const reqUrl = `${PLAYSTORE_URL}?${qs}`;
+ 
+@@ -27,7 +27,6 @@ function app (opts) {
+       url: reqUrl,
+       followRedirect: true
+     }, opts.requestOptions);
+-
+     request(options, opts.throttle)
+       .then(scriptData.parse)
+     // comment next line to get raw data
+diff --git a/node_modules/google-play-scraper/lib/reviews.js b/node_modules/google-play-scraper/lib/reviews.js
+index f38b08a..6e3affc 100644
+--- a/node_modules/google-play-scraper/lib/reviews.js
++++ b/node_modules/google-play-scraper/lib/reviews.js
+@@ -141,7 +141,10 @@ function makeReviewsRequest (opts, savedReviews, nextToken) {
+     withToken: nextToken,
+     requestType
+   });
+-  const url = `${BASE_URL}/_/PlayStoreUi/data/batchexecute?rpcids=qnKhOb&f.sid=-697906427155521722&bl=boq_playuiserver_20190903.08_p0&hl=${lang}&gl=${country}&authuser&soc-app=121&soc-platform=1&soc-device=1&_reqid=1065213`;
++  let url = `${BASE_URL}/_/PlayStoreUi/data/batchexecute?rpcids=qnKhOb&f.sid=-697906427155521722&bl=boq_playuiserver_20190903.08_p0`;
++  if (lang) url += `&hl=${lang}`;
++  if (country) url += `&gl=${country}`;
++  url += `&authuser&soc-app=121&soc-platform=1&soc-device=1&_reqid=1065213`;
+ 
+   debug('batchexecute URL: %s', url);
+   debug('with body: %s', body);

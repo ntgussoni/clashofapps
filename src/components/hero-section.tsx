@@ -59,18 +59,16 @@ export function HeroSection() {
     <section className="relative py-20 md:py-32">
       <div className="container px-4 md:px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center space-y-8 text-center">
-          <div className="inline-flex items-center rounded-full bg-[#E8F5E9] px-3 py-1 text-sm text-[#01875f]">
-            AI-Powered App Analysis
-          </div>
-
           <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
             Turn Competitor Flaws{" "}
             <span className="text-[#4285F4]">into Your Winning Features.</span>
           </h1>
 
           <p className="max-w-2xl text-lg text-muted-foreground">
-            Paste Google Play Store links below and let our AI analyze and
-            compare the apps for you.
+            Stop guessing what users want! See exactly why people love (or hate)
+            your competitors' apps. Drop in any Google Play Store links and our
+            we will show you the features worth copying - and the mistakes to
+            avoid.
           </p>
 
           <div className="w-full space-y-4">

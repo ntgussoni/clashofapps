@@ -313,7 +313,6 @@ export async function* analyzeAppReviews(
 
     // Replace strength/weakness extraction with AI processing
     const aiAnalysis = await analyzeReviews(balancedSample);
-    console.dir(aiAnalysis, { depth: null });
     // Return the complete analysis as the final yield value
     yield {
       ...analysis,

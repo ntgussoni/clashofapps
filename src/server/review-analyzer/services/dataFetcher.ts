@@ -12,20 +12,24 @@ const googlePlayScraper = gplay as unknown as Gplay.IMemoizedResult;
  */
 export async function fetchAppData(
   appId: string,
-  reviewCount = 100,
+  reviewCount = 50,
 ): Promise<{
   appInfo: AppInfo;
   reviews: Review[];
 }> {
   try {
-    console.log(`Fetching data for app: ${appId}`);
+    console.log(`Fetching data for app:${appId}`);
 
     // Get app details
-    const appDetails = await googlePlayScraper.app({ appId });
+    const appDetails = await googlePlayScraper.app({
+      appId,
+    });
 
     // Get reviews
     const reviewsResult = await googlePlayScraper.reviews({
       appId,
+      lang: "",
+      country: "",
       num: reviewCount,
       sort: googlePlayScraper.sort.NEWEST,
     });
@@ -35,6 +39,8 @@ export async function fetchAppData(
     try {
       const olderReviewsResult = await googlePlayScraper.reviews({
         appId,
+        lang: "",
+        country: "",
         num: Math.min(50, reviewCount / 2),
         sort: googlePlayScraper.sort.HELPFULNESS,
       });

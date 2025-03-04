@@ -355,7 +355,7 @@ For each step, provide a concise title and a detailed explanation of what to do 
   try {
     // Generate recommendations using AI
     const model = openai("gpt-4o-mini");
-    const response = await generateObject<RecommendationResponse>({
+    const response = await generateObject({
       model,
       schema: recommendationSchema,
       prompt,
@@ -507,102 +507,6 @@ function extractAllAppIdsFromMessages(
   return allAppIds;
 }
 
-// Generate analysis text for a single app
-function generateSingleAppAnalysisText(appAnalysis: AppAnalysisResult): string {
-  const { appInfo, analysis } = appAnalysis;
-
-  return (
-    `## Analysis Results for ${appInfo.name}\n\n` +
-    `### Strengths\n${analysis.overview.strengths
-      .map((s: string) => `- ${s}`)
-      .join("\n")}\n\n` +
-    `### Weaknesses\n${analysis.overview.weaknesses
-      .map((w: string) => `- ${w}`)
-      .join("\n")}\n\n` +
-    `### Market Position\n${analysis.overview.marketPosition}\n\n` +
-    `### User Demographics\n${analysis.overview.targetDemographic}\n\n` +
-    `### Top Features\n${analysis.featureAnalysis
-      .map(
-        (f) =>
-          `- **${f.feature}**: Sentiment ${f.sentimentScore.toFixed(
-            2,
-          )}, Mentions: ${f.mentionCount}`,
-      )
-      .join("\n")}\n\n` +
-    `### Pricing Perception\n` +
-    `Value for Money: ${analysis.pricingPerception.valueForMoney.toFixed(
-      2,
-    )} (from -1 to 1)\n` +
-    `Pricing Complaints: ${analysis.pricingPerception.pricingComplaints.toFixed(
-      1,
-    )}%\n` +
-    `Willingness to Pay: ${analysis.pricingPerception.willingness}\n\n` +
-    `### Top Recommendations\n${analysis.recommendedActions
-      .map(
-        (r) =>
-          `- **${r.action}** (Priority: ${r.priority}, Impact: ${r.impact})`,
-      )
-      .join("\n")}`
-  );
-}
-
-// Generate analysis text for app comparison
-function generateComparisonAnalysisText(
-  appAnalyses: AppAnalysisResult[],
-  comparisonData: ComparisonData,
-): string {
-  const appNames = appAnalyses.map((a) => a.appInfo.name).join(" vs ");
-
-  return (
-    `## Comparison Analysis: ${appNames}\n\n` +
-    `### Key Metrics Comparison\n` +
-    appAnalyses
-      .map(
-        (a) =>
-          `**${a.appInfo.name}**: ${a.appInfo.score.toFixed(
-            1,
-          )}/5 stars, ${a.appInfo.reviews} reviews`,
-      )
-      .join("\n") +
-    `\n\n### Common Strengths\n` +
-    (comparisonData.strengthsComparison.common.length > 0
-      ? comparisonData.strengthsComparison.common
-          .map((s) => `- ${s.strength} (Found in: ${s.apps.join(", ")})`)
-          .join("\n")
-      : "No common strengths found.") +
-    `\n\n### Common Weaknesses\n` +
-    (comparisonData.weaknessesComparison.common.length > 0
-      ? comparisonData.weaknessesComparison.common
-          .map((w) => `- ${w.weakness} (Found in: ${w.apps.join(", ")})`)
-          .join("\n")
-      : "No common weaknesses found.") +
-    `\n\n### Feature Comparison\n` +
-    (comparisonData.featureComparison.length > 0
-      ? comparisonData.featureComparison
-          .map(
-            (f) =>
-              `- **${f.feature}**: Mentioned in ${(f.appCoverage * 100).toFixed(
-                0,
-              )}% of apps, Avg. sentiment: ${f.averageSentiment.toFixed(2)}`,
-          )
-          .join("\n")
-      : "No feature comparison available.") +
-    `\n\n### Pricing Comparison\n` +
-    comparisonData.pricingComparison
-      .map(
-        (p) =>
-          `- **${p.appName}**: Value for money: ${p.valueForMoney.toFixed(
-            2,
-          )}, Pricing complaints: ${p.pricingComplaints.toFixed(1)}%`,
-      )
-      .join("\n") +
-    `\n\n### Recommendation Summary\n` +
-    (comparisonData.recommendationSummary.length > 0
-      ? comparisonData.recommendationSummary.map((r) => `- ${r}`).join("\n")
-      : "No recommendations available.")
-  );
-}
-
 // Process a single app analysis
 async function processAppAnalysis(
   appId: string,
@@ -677,7 +581,6 @@ async function processAppAnalysis(
     let analysis: AppAnalysis | null = null;
 
     for await (const update of analysisGenerator) {
-      console.dir(update, { depth: null });
       // Check if the update is a status/error update or the final analysis result
       if ((update as AnalysisUpdate).type !== undefined) {
         // It's a status update
@@ -867,7 +770,7 @@ export async function POST(req: NextRequest) {
               // Store the comparison in the database
               if (userId) {
                 await storeComparisonResults(
-                  userId || null,
+                  userId,
                   appAnalyses,
                   comparisonData,
                 );
@@ -876,71 +779,67 @@ export async function POST(req: NextRequest) {
           }
 
           // Format analysis for AI summary
-          let analysisText = "";
+          // let analysisText = "";
 
-          if (
-            newAppIds.length === 1 &&
-            appAnalyses.length === 1 &&
-            appAnalyses[0]
-          ) {
-            // Single app summary format
-            analysisText = generateSingleAppAnalysisText(appAnalyses[0]);
-          } else if (appAnalyses.length > 0) {
-            // Comparison summary format
-            const comparisonData = await generateComparison(appAnalyses);
-            analysisText = generateComparisonAnalysisText(
-              appAnalyses,
-              comparisonData,
-            );
-          }
+          // if (
+          //   newAppIds.length === 1 &&
+          //   appAnalyses.length === 1 &&
+          //   appAnalyses[0]
+          // ) {
+          //   // Single app summary format
+          //   analysisText = generateSingleAppAnalysisText(appAnalyses[0]);
+          // } else if (appAnalyses.length > 0) {
+          //   // Comparison summary format
+          //   const comparisonData = await generateComparison(appAnalyses);
+          //   analysisText = generateComparisonAnalysisText(
+          //     appAnalyses,
+          //     comparisonData,
+          //   );
+          // }
 
           // Update status before AI summary
           if (appAnalyses.length > 0) {
-            sendStatus(
-              dataStream,
-              "summarizing",
-              `Generating AI summary of analysis results...`,
-            );
-
-            // Stream a summarized response using the AI model
-            const systemPrompt =
-              newAppIds.length === 1
-                ? "You are an expert app analyst whose job is to help the user analyze and find gaps on their competitors. Summarize the following app analysis in a professional to the point but friendly tone. Highlight the most important insights and action items."
-                : "You are an expert app analyst whose job is to help the user analyze and find gaps on their competitors. Summarize the following app comparison in a professional to the point but friendly tone. Focus on the key differences between the apps and highlight actionable insights based on the comparison.";
-
-            const result = streamText({
-              model: openai("gpt-4o-mini"),
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    systemPrompt +
-                    " Use markdown formatting for better readability. Keep your response concise but informative.",
-                },
-                {
-                  role: "user",
-                  content: analysisText,
-                },
-              ],
-              onFinish: () => {
-                // When AI is done, send completed status
-                const appName =
-                  appAnalyses.length > 0 && appAnalyses[0]
-                    ? appAnalyses[0].appInfo.name
-                    : "apps";
-
-                sendStatus(
-                  dataStream,
-                  "completed",
-                  `Analysis completed for ${
-                    newAppIds.length > 1 ? `${newAppIds.length} apps` : appName
-                  }`,
-                );
-              },
-            });
-
-            // Merge the AI stream into our data stream
-            result.mergeIntoDataStream(dataStream);
+            // sendStatus(
+            //   dataStream,
+            //   "summarizing",
+            //   `Generating AI summary of analysis results...`,
+            // );
+            // // Stream a summarized response using the AI model
+            // const systemPrompt =
+            //   newAppIds.length === 1
+            //     ? "You are an expert app analyst whose job is to help the user analyze and find gaps on their competitors. Summarize the following app analysis in a professional to the point but friendly tone. Highlight the most important insights and action items."
+            //     : "You are an expert app analyst whose job is to help the user analyze and find gaps on their competitors. Summarize the following app comparison in a professional to the point but friendly tone. Focus on the key differences between the apps and highlight actionable insights based on the comparison.";
+            // const result = streamText({
+            //   model: openai("gpt-4o-mini"),
+            //   messages: [
+            //     {
+            //       role: "system",
+            //       content:
+            //         systemPrompt +
+            //         " Use markdown formatting for better readability. Keep your response concise but informative.",
+            //     },
+            //     {
+            //       role: "user",
+            //       content: analysisText,
+            //     },
+            //   ],
+            //   onFinish: () => {
+            //     // When AI is done, send completed status
+            //     const appName =
+            //       appAnalyses.length > 0 && appAnalyses[0]
+            //         ? appAnalyses[0].appInfo.name
+            //         : "apps";
+            //     sendStatus(
+            //       dataStream,
+            //       "completed",
+            //       `Analysis completed for ${
+            //         newAppIds.length > 1 ? `${newAppIds.length} apps` : appName
+            //       }`,
+            //     );
+            //   },
+            // });
+            // // Merge the AI stream into our data stream
+            // result.mergeIntoDataStream(dataStream);
           } else {
             // If all analyses failed, send completed status
             sendStatus(
