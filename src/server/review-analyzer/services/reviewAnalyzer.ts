@@ -2,7 +2,7 @@ import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import type { AppAnalysis } from "../types";
 import { appAnalysisSchema } from "../schemas";
-import { App, AppReview } from "@prisma/client";
+import { type App, type AppReview } from "@prisma/client";
 import { z } from "zod";
 
 // Configure OpenAI
@@ -271,6 +271,9 @@ export async function* analyzeAppReviews(
       model,
       schema: appAnalysisSchema,
       prompt: completePrompt,
+      experimental_telemetry: {
+        isEnabled: true,
+      },
     });
 
     const analysisEndTime = Date.now();
@@ -286,22 +289,6 @@ export async function* analyzeAppReviews(
 
     // Cast the result to AppAnalysis to work with it properly
     const analysis = analysisResponse.object;
-
-    // Extract insights for interim update
-    const strengthsPreview = analysis.overview?.strengths.slice(0, 3) ?? [];
-    const weaknessesPreview = analysis.overview?.weaknesses.slice(0, 3) ?? [];
-
-    // Provide an interim update with initial findings
-    yield {
-      type: "status",
-      status: "processing",
-      message: "Initial insights discovered...",
-      progress: 80,
-      data: {
-        strengthsPreview,
-        weaknessesPreview,
-      },
-    };
 
     // Final processing
     yield {
@@ -388,6 +375,9 @@ export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
       the issue with evidence from the reviews.
     `,
     schema: strengthWeaknessSchema,
+    experimental_telemetry: {
+      isEnabled: true,
+    },
   });
 
   return result.object;
@@ -420,6 +410,9 @@ export async function analyzeSentiment(reviews: AppReview[]) {
       4. Any neutral or factual observations made by users
     `,
     schema: sentimentAnalysisSchema,
+    experimental_telemetry: {
+      isEnabled: true,
+    },
   });
 
   return result.object;
@@ -447,9 +440,12 @@ export async function extractKeyFeatures(reviews: AppReview[]) {
       2. Determine the overall sentiment toward this feature (positive, negative, or neutral)
       3. Write a concise description of user opinions about this feature
       
-      Identify up to 8 distinct features that appear most frequently in the reviews.
+      Identify up to 10 distinct features that appear most frequently in the reviews.
     `,
     schema: keyFeaturesSchema,
+    experimental_telemetry: {
+      isEnabled: true,
+    },
   });
 
   return result.object;

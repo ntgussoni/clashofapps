@@ -1,6 +1,6 @@
 import gplay from "google-play-scraper";
 import type * as Gplay from "google-play-scraper";
-import { AppInfo, Review } from "../types";
+import { type AppInfo, type Review } from "../types";
 
 const googlePlayScraper = gplay as unknown as Gplay.IMemoizedResult;
 

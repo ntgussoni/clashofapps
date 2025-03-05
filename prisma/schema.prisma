@@ -204,13 +204,15 @@ model AppAnalysisData {
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   // Core analysis results (matches AnalysisResultsData)
-  strengths        Json // String array
-  weaknesses       Json // String array
-  marketPosition   String @db.Text
-  userDemographics String @db.Text
-  topFeatures      Json // Array of feature objects with sentiment/mentions
-  pricing          Json // Pricing object with valueForMoney, complaints, willingness
-  recommendations  Json // Array of recommendation objects
+  strengths         Json // String array
+  weaknesses        Json // String array
+  opportunities     Json // String array
+  marketPosition    String @db.Text
+  targetDemographic String @db.Text
+  threats           Json // String array
+  topFeatures       Json // Array of feature objects with sentiment/mentions
+  pricing           Json // Pricing object with valueForMoney, complaints, willingness
+  recommendations   Json // Array of recommendation objects
 
   // Complete raw analysis
   rawAnalysis Json // Complete analysis JSON

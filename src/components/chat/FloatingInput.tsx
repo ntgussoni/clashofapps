@@ -1,4 +1,4 @@
-import { FormEvent } from "react";
+import { type FormEvent } from "react";
 
 interface FloatingInputProps {
   input: string;

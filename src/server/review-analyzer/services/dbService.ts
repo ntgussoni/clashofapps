@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import type { AppAnalysis, AppInfo, Review } from "../types";
-import type { AnalysisResultsData, ComparisonData } from "@/app/api/chat/route";
-import { App, AppReview, Prisma } from "@prisma/client";
+import type { AnalysisResultsData, ComparisonData } from "@/app/api/chat/types";
+import { type App, type Prisma } from "@prisma/client";
 
 /**
  * Get app data from database or return null if not found or expired
@@ -170,7 +170,9 @@ export async function storeAnalysisResults(
             strengths: analysisResults.strengths as Prisma.InputJsonValue,
             weaknesses: analysisResults.weaknesses as Prisma.InputJsonValue,
             marketPosition: analysisResults.marketPosition,
-            userDemographics: analysisResults.userDemographics,
+            targetDemographic: analysisResults.targetDemographic,
+            threats: analysisResults.threats,
+            opportunities: analysisResults.opportunities,
             topFeatures: analysisResults.topFeatures as Prisma.InputJsonValue,
             pricing: analysisResults.pricing as Prisma.InputJsonValue,
             recommendations:
@@ -221,7 +223,9 @@ export async function storeComparisonResults(
             strengths: app.analysisResults.strengths as Prisma.InputJsonValue,
             weaknesses: app.analysisResults.weaknesses as Prisma.InputJsonValue,
             marketPosition: app.analysisResults.marketPosition,
-            userDemographics: app.analysisResults.userDemographics,
+            targetDemographic: app.analysisResults.targetDemographic,
+            threats: app.analysisResults.threats,
+            opportunities: app.analysisResults.opportunities,
             topFeatures: app.analysisResults
               .topFeatures as Prisma.InputJsonValue,
             pricing: app.analysisResults.pricing as Prisma.InputJsonValue,
@@ -316,7 +320,9 @@ export async function getAnalysisResultsFromDb(appId: string, maxAgeDays = 30) {
       strengths: singleAnalysis.strengths as unknown as string[],
       weaknesses: singleAnalysis.weaknesses as unknown as string[],
       marketPosition: singleAnalysis.marketPosition,
-      userDemographics: singleAnalysis.userDemographics,
+      targetDemographic: singleAnalysis.targetDemographic,
+      threats: singleAnalysis.threats as unknown as string[],
+      opportunities: singleAnalysis.opportunities as unknown as string[],
       topFeatures: singleAnalysis.topFeatures as unknown as {
         feature: string;
         sentiment: string;
@@ -413,7 +419,9 @@ export async function getComparisonResultsFromDb(
           strengths: singleAnalysis.strengths as unknown as string[],
           weaknesses: singleAnalysis.weaknesses as unknown as string[],
           marketPosition: singleAnalysis.marketPosition,
-          userDemographics: singleAnalysis.userDemographics,
+          targetDemographic: singleAnalysis.targetDemographic,
+          threats: singleAnalysis.threats as unknown as string[],
+          opportunities: singleAnalysis.opportunities as unknown as string[],
           topFeatures: singleAnalysis.topFeatures as unknown as {
             feature: string;
             sentiment: string;

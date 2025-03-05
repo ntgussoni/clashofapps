@@ -1,69 +1,41 @@
+import React from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Award,
+  CheckCircle,
+  Target,
+  DollarSign,
+  Star,
+  Users,
+  TrendingUp,
+  CheckCircle2Icon,
+  AlertCircle,
+  LightbulbIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ArrowUpIcon,
-  ArrowDownIcon,
-  StarIcon,
-  UsersIcon,
-  TrendingUpIcon,
-  DollarSignIcon,
-  CheckCircle2Icon,
-  AlertCircleIcon,
-  LightbulbIcon,
-  BarChart3Icon,
-} from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import type { AnalysisResultsData } from "../types";
 import { motion } from "framer-motion";
+import { Separator } from "../ui/separator";
 
 interface AnalysisCardProps {
   result: AnalysisResultsData;
+  accentColor?: "blue" | "rose";
 }
 
-export default function AnalysisCard({ result }: AnalysisCardProps) {
-  // Helper function to get color based on sentiment value
-  const getSentimentVariant = (
-    sentiment: string,
-  ): "default" | "destructive" | "outline" | "secondary" | "success" => {
-    const value = parseFloat(sentiment);
-    if (value > 0.5) return "outline";
-    if (value < 0) return "outline";
-    return "outline";
-  };
-
-  // Helper function to get priority badge variant
-  const getPriorityVariant = (
-    priority: string,
-  ): "default" | "destructive" | "outline" | "secondary" => {
-    return "outline";
-  };
-
+export default function AnalysisCard({
+  result,
+  accentColor = "blue",
+}: AnalysisCardProps) {
   // Format sentiment value for display
   const formatSentiment = (sentiment: string): string => {
     const value = parseFloat(sentiment);
     return value.toFixed(2);
   };
 
-  // Helper function to get progress bar color
-  const getProgressColor = (sentiment: string): string => {
-    const value = parseFloat(sentiment);
-    if (value > 0.5) return "bg-emerald-500";
-    if (value < 0) return "bg-red-500";
-    return "bg-amber-500";
+  const colors = {
+    blue: "bg-blue-50 border-blue-100",
+    rose: "bg-rose-50 border-rose-100",
   };
 
   return (
@@ -72,236 +44,244 @@ export default function AnalysisCard({ result }: AnalysisCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="w-full min-w-[500px] overflow-hidden border shadow-md">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-3 dark:from-blue-950/30 dark:to-indigo-950/30">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-medium text-gray-900 dark:text-gray-100">
-              <BarChart3Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              {result.appName}
-            </CardTitle>
-            <Badge className="px-2 py-0.5">Analysis</Badge>
-          </div>
-          <CardDescription className="text-xs text-gray-500 dark:text-gray-400">
-            Based on user reviews and market data
-          </CardDescription>
-        </CardHeader>
+      <div className="min-w-[600px] overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+        <div
+          className={`border-b border-gray-200 p-6 ${accentColor === "rose" ? "bg-rose-50/30" : "bg-blue-50/30"}`}
+        >
+          <h3 className="font-semibold text-gray-900">{result.appName}</h3>
+        </div>
 
-        <CardContent className="p-4">
+        <div className="space-y-6 p-6">
+          {/* Tabs Navigation */}
           <Tabs defaultValue="strengths" className="w-full">
-            <TabsList className="mb-4 grid w-full grid-cols-3">
+            <TabsList className="mb-4 grid w-full grid-cols-5 rounded-lg border border-gray-200 bg-gray-50 p-1">
               <TabsTrigger
                 value="strengths"
-                className="flex items-center gap-1 text-sm"
+                className="flex items-center gap-1 rounded-md text-xs"
               >
-                <CheckCircle2Icon className="h-3.5 w-3.5 text-emerald-500" />
                 Strengths
               </TabsTrigger>
               <TabsTrigger
                 value="weaknesses"
-                className="flex items-center gap-1 text-sm"
+                className="flex items-center gap-1 rounded-md text-xs"
               >
-                <AlertCircleIcon className="h-3.5 w-3.5 text-red-500" />
                 Weaknesses
               </TabsTrigger>
               <TabsTrigger
-                value="features"
-                className="flex items-center gap-1 text-sm"
+                value="opportunities"
+                className="flex items-center gap-1 rounded-md text-xs"
               >
-                <StarIcon className="h-3.5 w-3.5 text-amber-500" />
+                Opportunities
+              </TabsTrigger>
+              <TabsTrigger
+                value="threats"
+                className="flex items-center gap-1 rounded-md text-xs"
+              >
+                Threats
+              </TabsTrigger>
+              <TabsTrigger
+                value="features"
+                className="flex items-center gap-1 rounded-md text-xs"
+              >
                 Features
               </TabsTrigger>
             </TabsList>
 
             {/* Strengths Tab */}
-            <TabsContent value="strengths" className="space-y-3">
-              <div className="rounded-md border bg-emerald-50/30 p-3 shadow-sm dark:bg-emerald-900/10">
-                <h3 className="mb-2 flex items-center gap-1 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                  <ArrowUpIcon className="h-3.5 w-3.5" />
+            <TabsContent value="strengths">
+              <div>
+                <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+                  <Award className="mr-2 h-4 w-4 text-gray-400" />
                   Key Strengths
-                </h3>
-                <ul className="space-y-1.5">
-                  {result.strengths.map((strength, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.05 }}
-                      className="flex items-start"
-                    >
-                      <span className="mr-1.5 mt-0.5 text-emerald-400">•</span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {strength}
-                      </span>
-                    </motion.li>
+                </h4>
+                <ul className="space-y-2">
+                  {result.strengths.map((strength, index) => (
+                    <li key={index} className="flex items-start text-sm">
+                      <CheckCircle
+                        className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
+                      />
+                      <span className="text-gray-700">{strength}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             </TabsContent>
 
             {/* Weaknesses Tab */}
-            <TabsContent value="weaknesses" className="space-y-3">
-              <div className="rounded-md border bg-red-50/30 p-3 shadow-sm dark:bg-red-900/10">
-                <h3 className="mb-2 flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-400">
-                  <ArrowDownIcon className="h-3.5 w-3.5" />
+            <TabsContent value="weaknesses">
+              <div>
+                <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+                  <AlertCircle className="mr-2 h-4 w-4 text-gray-400" />
                   Areas for Improvement
-                </h3>
-                <ul className="space-y-1.5">
-                  {result.weaknesses.map((weakness, i) => (
-                    <motion.li
-                      key={i}
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.05 }}
-                      className="flex items-start"
-                    >
-                      <span className="mr-1.5 mt-0.5 text-red-400">•</span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {weakness}
-                      </span>
-                    </motion.li>
+                </h4>
+                <ul className="space-y-2">
+                  {result.weaknesses.map((weakness, index) => (
+                    <li key={index} className="flex items-start text-sm">
+                      <AlertCircle className="mr-2 mt-0.5 h-4 w-4 text-red-500" />
+                      <span className="text-gray-700">{weakness}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </TabsContent>
+
+            {/* Opportunities Tab */}
+            <TabsContent value="opportunities">
+              <div>
+                <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+                  <LightbulbIcon className="mr-2 h-4 w-4 text-gray-400" />
+                  Opportunities
+                </h4>
+                <ul className="space-y-2">
+                  {result.opportunities.map((opportunity, index) => (
+                    <li key={index} className="flex items-start text-sm">
+                      <LightbulbIcon className="mr-2 mt-0.5 h-4 w-4 text-amber-500" />
+                      <span className="text-gray-700">{opportunity}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </TabsContent>
+
+            {/* Threats Tab */}
+            <TabsContent value="threats">
+              <div>
+                <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+                  <AlertCircle className="mr-2 h-4 w-4 text-gray-400" />
+                  Threats
+                </h4>
+                <ul className="space-y-2">
+                  {result.threats.map((threat, index) => (
+                    <li key={index} className="flex items-start text-sm">
+                      <AlertCircle className="mr-2 mt-0.5 h-4 w-4 text-red-500" />
+                      <span className="text-gray-700">{threat}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             </TabsContent>
 
             {/* Features Tab */}
-            <TabsContent value="features" className="space-y-3">
-              <div className="rounded-md border bg-amber-50/30 p-3 shadow-sm dark:bg-amber-900/10">
-                <h3 className="mb-2 flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-400">
-                  <StarIcon className="h-3.5 w-3.5" />
+            <TabsContent value="features">
+              <div>
+                <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+                  <Star className="mr-2 h-4 w-4 text-gray-400" />
                   Top Features
-                </h3>
-                <div className="space-y-3">
-                  {result.topFeatures.map((feature, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.05 }}
-                      className="border-b border-gray-100 pb-2 last:border-0 dark:border-gray-700"
+                </h4>
+                <ul className="space-y-2">
+                  {result.topFeatures.map((feature, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start justify-between text-sm"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                          {feature.feature}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className="px-1.5 py-0.5 text-xs"
-                          >
-                            {formatSentiment(feature.sentiment)}
-                          </Badge>
-                          <Badge
-                            variant="secondary"
-                            className="px-1.5 py-0.5 text-xs"
-                          >
-                            {feature.mentions}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="mt-1.5">
-                        <Progress
-                          value={Math.max(
-                            0,
-                            (parseFloat(feature.sentiment) + 1) * 50,
-                          )}
-                          className={`h-1.5 ${getProgressColor(feature.sentiment)}`}
+                      <div className="flex items-start">
+                        <CheckCircle
+                          className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
                         />
+                        <span className="text-gray-700">{feature.feature}</span>
                       </div>
-                    </motion.div>
+                      <div className="flex space-x-2">
+                        <Badge
+                          variant="outline"
+                          className="border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
+                        >
+                          {formatSentiment(feature.sentiment)}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
+                        >
+                          {feature.mentions} mentions
+                        </Badge>
+                      </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             </TabsContent>
           </Tabs>
-
-          {/* Market Position & Demographics */}
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-md border bg-blue-50/30 p-3 shadow-sm dark:bg-blue-900/10">
-              <h3 className="mb-2 flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400">
-                <TrendingUpIcon className="h-3.5 w-3.5" />
-                Market Position
-              </h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {result.marketPosition}
-              </p>
-            </div>
-
-            <div className="rounded-md border bg-purple-50/30 p-3 shadow-sm dark:bg-purple-900/10">
-              <h3 className="mb-2 flex items-center gap-1 text-sm font-medium text-purple-700 dark:text-purple-400">
-                <UsersIcon className="h-3.5 w-3.5" />
-                User Demographics
-              </h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {result.userDemographics}
-              </p>
-            </div>
+          <Separator className="my-4" />
+          {/* Market Position Section */}
+          <div>
+            <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+              <Target className="mr-2 h-4 w-4 text-gray-400" />
+              Market Fit
+            </h4>
+            <p className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600">
+              {result.marketPosition}
+            </p>
           </div>
 
-          {/* Pricing Perception */}
-          <div className="mt-4 rounded-md border bg-indigo-50/30 p-3 shadow-sm dark:bg-indigo-900/10">
-            <h3 className="mb-2 flex items-center gap-1 text-sm font-medium text-indigo-700 dark:text-indigo-400">
-              <DollarSignIcon className="h-3.5 w-3.5" />
-              Pricing Perception
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-md border bg-white p-2 shadow-sm dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Value
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          {/* User Demographics Section */}
+          <div>
+            <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+              <Users className="mr-2 h-4 w-4 text-gray-400" />
+              User Demographics
+            </h4>
+            <p className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600">
+              {result.targetDemographic}
+            </p>
+          </div>
+
+          {/* Pricing Section */}
+          <div>
+            <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+              <DollarSign className="mr-2 h-4 w-4 text-gray-400" />
+              Pricing
+            </h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500">Value</p>
+                <p className="text-sm font-medium text-gray-900">
                   {formatSentiment(result.pricing.valueForMoney)}
                 </p>
               </div>
-              <div className="rounded-md border bg-white p-2 shadow-sm dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Complaints
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500">Complaints</p>
+                <p className="text-sm font-medium text-gray-900">
                   {result.pricing.pricingComplaints}%
                 </p>
               </div>
-              <div className="rounded-md border bg-white p-2 shadow-sm dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Perception
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500">Perception</p>
+                <p className="text-sm font-medium text-gray-900">
                   {result.pricing.willingness}
                 </p>
               </div>
             </div>
           </div>
-        </CardContent>
 
-        <CardFooter className="border-t p-3">
-          <div className="w-full space-y-2">
-            <h4 className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-              <LightbulbIcon className="h-3 w-3" />
+          {/* Recommendations Section */}
+          <div>
+            <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
+              <LightbulbIcon className="mr-2 h-4 w-4 text-gray-400" />
               Recommendations
             </h4>
-            <div className="grid gap-2 md:grid-cols-2">
+            <div className="space-y-3">
               {result.recommendations.map((rec, i) => (
-                <motion.div
+                <div
                   key={i}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2, delay: i * 0.05 }}
-                  className="rounded-md border p-2"
+                  className="rounded-xl border border-gray-200 p-5 transition-colors hover:border-blue-200 hover:bg-blue-50/10"
                 >
-                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {rec.action}
+                  <div className="flex items-start">
+                    <div className="mr-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-600">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <h3 className="mb-2 font-medium text-gray-900">
+                        {rec.action}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {rec.priority} priority • {rec.impact} impact
+                      </p>
+                    </div>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {rec.priority} priority • {rec.impact} impact
-                    </span>
-                  </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }

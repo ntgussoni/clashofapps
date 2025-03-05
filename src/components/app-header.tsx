@@ -2,21 +2,29 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config";
 import { authClient } from "@/lib/auth-client";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import type { auth } from "@/server/auth";
+import { useRouter } from "next/navigation";
+type Session = typeof auth.$Infer.Session;
 
-export function AppHeader() {
+export function AppHeader({
+  initialSession,
+}: {
+  initialSession: Session | null;
+}) {
   const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
-  const { data: session } = authClient.useSession();
+  const { data } = authClient.useSession();
+  const session = data ?? initialSession;
+  const router = useRouter();
 
   const handleSignOut = async () => {
     await authClient.signOut();
+    router.refresh();
   };
 
   const handleMobileSignOut = async () => {

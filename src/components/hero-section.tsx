@@ -66,9 +66,9 @@ export function HeroSection() {
 
           <p className="max-w-2xl text-lg text-muted-foreground">
             Stop guessing what users want! See exactly why people love (or hate)
-            your competitors' apps. Drop in any Google Play Store links and our
-            we will show you the features worth copying - and the mistakes to
-            avoid.
+            your competitors&apos; apps. Drop in any Google Play Store links and
+            our we will show you the features worth copying - and the mistakes
+            to avoid.
           </p>
 
           <div className="w-full space-y-4">

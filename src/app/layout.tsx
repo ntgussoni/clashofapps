@@ -5,8 +5,6 @@ import { type Metadata } from "next";
 
 import { TRPCReactProvider } from "@/trpc/react";
 import { siteConfig } from "@/lib/config";
-import { AppHeader } from "@/components/app-header";
-import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
   title: siteConfig.name,

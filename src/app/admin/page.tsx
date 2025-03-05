@@ -49,13 +49,6 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-type User = {
-  id: string;
-  email: string;
-  name: string;
-  role: "admin" | "user";
-};
-
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const router = useRouter();

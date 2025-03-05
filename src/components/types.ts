@@ -2,13 +2,15 @@ export interface AnalysisResultsData {
   appName: string;
   strengths: string[];
   weaknesses: string[];
+  opportunities: string[];
+  threats: string[];
   topFeatures: {
     feature: string;
     sentiment: string;
     mentions: number;
   }[];
   marketPosition: string;
-  userDemographics: string;
+  targetDemographic: string;
   pricing: {
     valueForMoney: string;
     pricingComplaints: number;
@@ -21,36 +23,69 @@ export interface AnalysisResultsData {
   }[];
 }
 
+export interface AppData {
+  appId: string;
+  appName: string;
+  rating: number;
+  ratingCount: number;
+  iconUrl?: string;
+}
+
+export interface StrengthItem {
+  strength: string;
+  apps: string[];
+}
+
+export interface WeaknessItem {
+  weakness: string;
+  apps: string[];
+}
+
+export interface StrengthsComparison {
+  common: StrengthItem[];
+  unique: Record<string, string[]>;
+}
+
+export interface WeaknessesComparison {
+  common: WeaknessItem[];
+  unique: Record<string, string[]>;
+}
+
+export interface FeatureComparisonItem {
+  feature: string;
+  appCoverage: number;
+  averageSentiment: number;
+  totalMentions: number;
+  appMentions: Record<string, number>;
+}
+
+export interface PricingComparisonItem {
+  appName: string;
+  valueForMoney: number;
+  pricingComplaints: number;
+  willingness: string;
+}
+
+export interface ReviewData {
+  id: string;
+  appName: string;
+  userName: string;
+  date: string;
+  score: number;
+  text: string;
+  featureMentions?: string[];
+  pricingMentions?: boolean;
+}
+
 export interface ComparisonResultsData {
-  apps: {
-    appId: string;
-    appName: string;
-    rating: number;
-    ratingCount: number;
-  }[];
-  strengthsComparison: {
-    common: {
-      strength: string;
-      apps: string[];
-    }[];
-  };
-  weaknessesComparison: {
-    common: {
-      weakness: string;
-      apps: string[];
-    }[];
-  };
-  featureComparison: {
-    feature: string;
-    appCoverage: number;
-    averageSentiment: number;
-    totalMentions: number;
-  }[];
-  pricingComparison: {
-    appName: string;
-    valueForMoney: number;
-    pricingComplaints: number;
-    willingness: string;
-  }[];
+  apps: AppData[];
+  strengthsComparison: StrengthsComparison;
+  weaknessesComparison: WeaknessesComparison;
+  featureComparison: FeatureComparisonItem[];
+  pricingComparison: PricingComparisonItem[];
   recommendationSummary: string[];
+  reviews: {
+    feature: Record<string, ReviewData[]>;
+    pricing: Record<string, ReviewData[]>;
+  };
 }
