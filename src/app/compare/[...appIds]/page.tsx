@@ -19,8 +19,6 @@ import SkeletonAppInfoCard from "@/components/chat/SkeletonAppInfoCard";
 import SkeletonAnalysisCard from "@/components/chat/SkeletonAnalysisCard";
 import SkeletonComparisonSection from "@/components/chat/SkeletonComparisonSection";
 import { type App } from "@prisma/client";
-import { authClient } from "@/lib/auth-client";
-import { redirect } from "next/navigation";
 import { useParams } from "next/navigation";
 
 // Define types for the data stream items

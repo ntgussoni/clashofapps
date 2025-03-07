@@ -86,7 +86,7 @@ model Verification {
 
 // Raw app data from Google Play
 model App {
-  id    String @id @default(cuid())
+  id    Int    @id @default(autoincrement())
   appId String @unique // Google Play app ID (e.g., com.example.app)
 
   // Core app metadata
@@ -119,7 +119,7 @@ model App {
 
 // Reviews for an app
 model AppReview {
-  id       String @id @default(cuid())
+  id       Int    @id @default(autoincrement())
   reviewId String // Original review ID from Google Play
 
   // Review content
@@ -148,7 +148,7 @@ model AppReview {
 
 // User-created analyses
 model Analysis {
-  id          String  @id @default(cuid())
+  id          Int     @id @default(autoincrement())
   title       String?
   description String? @db.Text
 
@@ -174,10 +174,10 @@ model Analysis {
 
 // Junction table for Analysis to App relationship
 model AnalysisApp {
-  id String @id @default(cuid())
+  id Int @id @default(autoincrement())
 
   // References
-  analysisId String
+  analysisId Int
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
   appId      String
   app        App      @relation(fields: [appId], references: [appId], onDelete: Cascade)
@@ -195,12 +195,12 @@ model AnalysisApp {
 
 // Single app analysis results
 model AppAnalysisData {
-  id String @id @default(cuid())
+  id Int @id @default(autoincrement())
 
   // References
   appId      String
   app        App      @relation(fields: [appId], references: [appId], onDelete: Cascade)
-  analysisId String
+  analysisId Int
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   // Core analysis results (matches AnalysisResultsData)
@@ -213,6 +213,12 @@ model AppAnalysisData {
   topFeatures       Json // Array of feature objects with sentiment/mentions
   pricing           Json // Pricing object with valueForMoney, complaints, willingness
   recommendations   Json // Array of recommendation objects
+
+  // Review reference data for traceability
+  strengthsReviewMap  Json? // Map of strength titles to review IDs
+  weaknessesReviewMap Json? // Map of weakness titles to review IDs
+  sentimentReviewMap  Json? // Map of sentiment categories to review IDs
+  featuresReviewMap   Json? // Map of feature names to review IDs
 
   // Complete raw analysis
   rawAnalysis Json // Complete analysis JSON
@@ -228,10 +234,10 @@ model AppAnalysisData {
 
 // Comparison analysis results
 model ComparisonData {
-  id String @id @default(cuid())
+  id Int @id @default(autoincrement())
 
   // Reference to the main analysis
-  analysisId String   @unique
+  analysisId Int      @unique
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   // Comparison data fields (matches ComparisonData from route.ts)

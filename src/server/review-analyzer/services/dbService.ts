@@ -150,8 +150,72 @@ export async function storeAnalysisResults(
   appInfo: App,
   analysis: AppAnalysis,
   analysisResults: AnalysisResultsData,
-): Promise<string> {
+): Promise<number> {
   try {
+    // Extract review ID mappings from the raw analysis result
+    const rawAnalysis = analysis as unknown as {
+      strengths?: Array<{
+        title: string;
+        description: string;
+        reviewIds?: string[];
+      }>;
+      weaknesses?: Array<{
+        title: string;
+        description: string;
+        reviewIds?: string[];
+      }>;
+      sentiment?: {
+        overall: string;
+        positive: string[];
+        negative: string[];
+        neutral: string[];
+        mixed: string[];
+        reviewMap?: Record<string, string[]>;
+      };
+      keyFeatures?: {
+        features: Array<{
+          name: string;
+          sentiment: string;
+          description: string;
+          reviewIds?: string[];
+        }>;
+      };
+    };
+
+    // Create review ID mappings
+    const strengthsReviewMap: Record<string, string[]> = {};
+    const weaknessesReviewMap: Record<string, string[]> = {};
+
+    // Extract reviewIds from strengths and weaknesses if available
+    if (rawAnalysis.strengths && Array.isArray(rawAnalysis.strengths)) {
+      rawAnalysis.strengths.forEach((strength) => {
+        if (strength.title && strength.reviewIds) {
+          strengthsReviewMap[strength.title] = strength.reviewIds;
+        }
+      });
+    }
+
+    if (rawAnalysis.weaknesses && Array.isArray(rawAnalysis.weaknesses)) {
+      rawAnalysis.weaknesses.forEach((weakness) => {
+        if (weakness.title && weakness.reviewIds) {
+          weaknessesReviewMap[weakness.title] = weakness.reviewIds;
+        }
+      });
+    }
+
+    // Extract sentiment and feature review ID mappings
+    const sentimentReviewMap = rawAnalysis.sentiment?.reviewMap ?? {};
+
+    const featuresReviewMap: Record<string, string[]> = {};
+    if (rawAnalysis.keyFeatures?.features) {
+      rawAnalysis.keyFeatures.features.forEach((feature) => {
+        if (feature.name && feature.reviewIds) {
+          featuresReviewMap[feature.name] = feature.reviewIds;
+        }
+      });
+    }
+
+    // Use Prisma client to create the analysis
     const analysisData = await db.analysis.create({
       data: {
         userId,
@@ -178,6 +242,10 @@ export async function storeAnalysisResults(
             recommendations:
               analysisResults.recommendations as Prisma.InputJsonValue,
             rawAnalysis: analysis as Prisma.InputJsonValue,
+            strengthsReviewMap: strengthsReviewMap as Prisma.InputJsonValue,
+            weaknessesReviewMap: weaknessesReviewMap as Prisma.InputJsonValue,
+            sentimentReviewMap: sentimentReviewMap as Prisma.InputJsonValue,
+            featuresReviewMap: featuresReviewMap as Prisma.InputJsonValue,
           },
         },
       },
@@ -205,7 +273,7 @@ export async function storeComparisonResults(
     analysisResults: AnalysisResultsData;
   }[],
   comparisonData: ComparisonData,
-): Promise<string> {
+): Promise<number> {
   try {
     const analysisData = await db.analysis.create({
       data: {
@@ -232,6 +300,14 @@ export async function storeComparisonResults(
             recommendations: app.analysisResults
               .recommendations as Prisma.InputJsonValue,
             rawAnalysis: app.analysis as Prisma.InputJsonValue,
+            strengthsReviewMap: app.analysisResults.reviewMappings
+              ?.strengthsReviewMap as Prisma.InputJsonValue,
+            weaknessesReviewMap: app.analysisResults.reviewMappings
+              ?.weaknessesReviewMap as Prisma.InputJsonValue,
+            sentimentReviewMap: app.analysisResults.reviewMappings
+              ?.sentimentReviewMap as Prisma.InputJsonValue,
+            featuresReviewMap: app.analysisResults.reviewMappings
+              ?.featuresReviewMap as Prisma.InputJsonValue,
           })),
         },
         comparison: {
@@ -295,6 +371,26 @@ export async function getAnalysisResultsFromDb(appId: string, maxAgeDays = 30) {
               where: {
                 appId,
               },
+              // Include all fields including the review mappings
+              select: {
+                id: true,
+                appId: true,
+                strengths: true,
+                weaknesses: true,
+                marketPosition: true,
+                targetDemographic: true,
+                threats: true,
+                opportunities: true,
+                topFeatures: true,
+                pricing: true,
+                recommendations: true,
+                rawAnalysis: true,
+                // Add the new review mapping fields
+                strengthsReviewMap: true,
+                weaknessesReviewMap: true,
+                sentimentReviewMap: true,
+                featuresReviewMap: true,
+              },
             },
           },
         },
@@ -317,16 +413,24 @@ export async function getAnalysisResultsFromDb(appId: string, maxAgeDays = 30) {
       type: "analysis_results",
       appId: appId,
       appName: "", // Will be filled in by the app data
-      strengths: singleAnalysis.strengths as unknown as string[],
-      weaknesses: singleAnalysis.weaknesses as unknown as string[],
+      strengths: singleAnalysis.strengths as unknown as {
+        description: string;
+        title: string;
+        reviewIds: number[];
+      }[],
+      weaknesses: singleAnalysis.weaknesses as unknown as {
+        description: string;
+        title: string;
+        reviewIds: number[];
+      }[],
       marketPosition: singleAnalysis.marketPosition,
       targetDemographic: singleAnalysis.targetDemographic,
       threats: singleAnalysis.threats as unknown as string[],
       opportunities: singleAnalysis.opportunities as unknown as string[],
       topFeatures: singleAnalysis.topFeatures as unknown as {
-        feature: string;
-        sentiment: string;
-        mentions: number;
+        description: string;
+        title: string;
+        reviewIds: number[];
       }[],
       pricing: singleAnalysis.pricing as unknown as {
         valueForMoney: string;
@@ -339,6 +443,48 @@ export async function getAnalysisResultsFromDb(appId: string, maxAgeDays = 30) {
         impact: string;
       }[],
     };
+    // Add review mappings if they exist
+    const reviewMappings: Record<string, unknown> = {};
+    let hasAnyMappings = false;
+
+    // Check each mapping field and add it if it exists
+    if (singleAnalysis.strengthsReviewMap) {
+      reviewMappings.strengthsReviewMap =
+        singleAnalysis.strengthsReviewMap as unknown as Record<
+          string,
+          string[]
+        >;
+      hasAnyMappings = true;
+    }
+
+    if (singleAnalysis.weaknessesReviewMap) {
+      reviewMappings.weaknessesReviewMap =
+        singleAnalysis.weaknessesReviewMap as unknown as Record<
+          string,
+          string[]
+        >;
+      hasAnyMappings = true;
+    }
+
+    if (singleAnalysis.sentimentReviewMap) {
+      reviewMappings.sentimentReviewMap =
+        singleAnalysis.sentimentReviewMap as unknown as Record<
+          string,
+          string[]
+        >;
+      hasAnyMappings = true;
+    }
+
+    if (singleAnalysis.featuresReviewMap) {
+      reviewMappings.featuresReviewMap =
+        singleAnalysis.featuresReviewMap as unknown as Record<string, string[]>;
+      hasAnyMappings = true;
+    }
+
+    // Only add the review mappings if at least one mapping exists
+    if (hasAnyMappings) {
+      analysisResults.reviewMappings = reviewMappings;
+    }
 
     const rawAnalysis = singleAnalysis.rawAnalysis as unknown as AppAnalysis;
 
@@ -416,16 +562,24 @@ export async function getComparisonResultsFromDb(
           type: "analysis_results",
           appId: appId,
           appName: rawAnalysis.appName,
-          strengths: singleAnalysis.strengths as unknown as string[],
-          weaknesses: singleAnalysis.weaknesses as unknown as string[],
+          strengths: singleAnalysis.strengths as unknown as {
+            description: string;
+            title: string;
+            reviewIds: number[];
+          }[],
+          weaknesses: singleAnalysis.weaknesses as unknown as {
+            description: string;
+            title: string;
+            reviewIds: number[];
+          }[],
           marketPosition: singleAnalysis.marketPosition,
           targetDemographic: singleAnalysis.targetDemographic,
           threats: singleAnalysis.threats as unknown as string[],
           opportunities: singleAnalysis.opportunities as unknown as string[],
           topFeatures: singleAnalysis.topFeatures as unknown as {
-            feature: string;
-            sentiment: string;
-            mentions: number;
+            description: string;
+            title: string;
+            reviewIds: number[];
           }[],
           pricing: singleAnalysis.pricing as unknown as {
             valueForMoney: string;

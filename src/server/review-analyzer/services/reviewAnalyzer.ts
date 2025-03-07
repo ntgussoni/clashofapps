@@ -26,6 +26,10 @@ const strengthWeaknessSchema = z
           description: z
             .string()
             .describe("Detailed description of the strength with evidence"),
+          reviewIds: z
+            .array(z.number())
+            .describe("IDs of reviews that mention this strength")
+            .default([]),
         }),
       )
       .describe("Array of key strengths identified from reviews"),
@@ -36,6 +40,10 @@ const strengthWeaknessSchema = z
           description: z
             .string()
             .describe("Detailed description of the weakness with evidence"),
+          reviewIds: z
+            .array(z.number())
+            .describe("IDs of reviews that mention this weakness")
+            .default([]),
         }),
       )
       .describe("Array of key weaknesses identified from reviews"),
@@ -65,6 +73,13 @@ const sentimentAnalysisSchema = z
       .array(z.string())
       .default([])
       .describe("Mixed or unclear sentiment from reviews"),
+    reviewMap: z
+      .record(
+        z.string(), // sentiment type (positive, negative, neutral, mixed)
+        z.array(z.string()), // array of review IDs
+      )
+      .describe("Mapping of sentiment types to review IDs")
+      .default({}),
   })
   .describe("Schema for sentiment analysis results");
 
@@ -80,6 +95,10 @@ const keyFeaturesSchema = z
           description: z
             .string()
             .describe("Summary of user opinions about this feature"),
+          reviewIds: z
+            .array(z.number())
+            .describe("IDs of reviews that mention this feature")
+            .default([]),
         }),
       )
       .describe("Array of key features mentioned in reviews"),
@@ -101,7 +120,9 @@ export async function* analyzeAppReviews(
     sampleSize?: number;
     analysisDepth?: "basic" | "detailed" | "comprehensive";
   } = {},
-): AsyncGenerator<AnalysisUpdate | AppAnalysis> {
+): AsyncGenerator<
+  AnalysisUpdate | (AppAnalysis & Awaited<ReturnType<typeof analyzeReviews>>)
+> {
   try {
     const sampleSize = options.sampleSize ?? 50;
     const analysisDepth = options.analysisDepth ?? "detailed";
@@ -232,7 +253,7 @@ export async function* analyzeAppReviews(
     // Format reviews for the prompt
     const formattedReviews = balancedSample.map(
       (review, i) => `
-      Review #${i + 1} (${review.score}):
+      Review #${i + 1} (ID: ${review.id}, Score: ${review.score}):
       ${review.text}
       `,
     );
@@ -332,6 +353,7 @@ export async function analyzeReviews(reviews: AppReview[]) {
         negative: [],
         neutral: [],
         mixed: [],
+        reviewMap: {},
       },
       keyFeatures: { features: [] },
     };
@@ -358,8 +380,10 @@ export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
     return { strengths: [], weaknesses: [] };
   }
 
-  const reviewSummary = reviews.map((r) => ({
-    content: r.text,
+  // Include the review ID along with its content
+  const reviewData = reviews.map((r) => ({
+    id: r.id,
+    name: r.text,
     score: r.score,
   }));
 
@@ -367,12 +391,15 @@ export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
     model,
     prompt: `
       Analyze these app reviews and identify the key strengths and weaknesses:
-      ${JSON.stringify(reviewSummary)}
+      ${JSON.stringify(reviewData)}
       
       Extract the 5 most significant strengths and 5 most significant weaknesses based on user feedback.
       Focus on recurring themes, feature mentions, and pain points expressed by users.
       For each strength and weakness, provide a concise title and a detailed description that explains
       the issue with evidence from the reviews.
+      
+      IMPORTANT: For each strength and weakness, include an array of review IDs that mention or support
+      this particular strength or weakness. This will be used as a reference for traceability.
     `,
     schema: strengthWeaknessSchema,
     experimental_telemetry: {
@@ -392,22 +419,32 @@ export async function analyzeSentiment(reviews: AppReview[]) {
       negative: [],
       neutral: [],
       mixed: [],
+      reviewMap: {},
     };
   }
 
-  const reviewTexts = reviews.map((r) => r.text);
+  // Create a structured format that includes both review content and ID
+  const reviewData = reviews.map((r) => ({
+    id: r.id,
+    name: r.text,
+    score: r.score,
+  }));
 
   const result = await generateObject({
     model,
     prompt: `
       Analyze the sentiment of these app reviews:
-      ${JSON.stringify(reviewTexts)}
+      ${JSON.stringify(reviewData)}
       
       Provide:
       1. An overall sentiment assessment (positive, negative, or neutral, or mixed)
       2. Key positive themes mentioned in the reviews
       3. Key negative themes mentioned in the reviews
       4. Any neutral or factual observations made by users
+      5. Group the review IDs by sentiment category (positive, negative, neutral, mixed)
+      
+      IMPORTANT: For each sentiment category, include the IDs of the reviews that express that sentiment.
+      This will be used as a reference for traceability.
     `,
     schema: sentimentAnalysisSchema,
     experimental_telemetry: {
@@ -424,8 +461,10 @@ export async function extractKeyFeatures(reviews: AppReview[]) {
     return { features: [] };
   }
 
-  const reviewSummary = reviews.map((r) => ({
-    content: r.text,
+  // Include the review ID along with its content
+  const reviewData = reviews.map((r) => ({
+    id: r.id,
+    name: r.text,
     score: r.score,
   }));
 
@@ -433,14 +472,18 @@ export async function extractKeyFeatures(reviews: AppReview[]) {
     model,
     prompt: `
       Analyze these app reviews and identify the key features mentioned by users:
-      ${JSON.stringify(reviewSummary)}
+      ${JSON.stringify(reviewData)}
       
       For each feature:
       1. Provide the feature name
       2. Determine the overall sentiment toward this feature (positive, negative, or neutral)
       3. Write a concise description of user opinions about this feature
+      4. Include an array of review IDs that mention this feature
       
       Identify up to 10 distinct features that appear most frequently in the reviews.
+      
+      IMPORTANT: For each feature, include the IDs of the reviews that mention this feature.
+      This will be used as a reference for traceability.
     `,
     schema: keyFeaturesSchema,
     experimental_telemetry: {

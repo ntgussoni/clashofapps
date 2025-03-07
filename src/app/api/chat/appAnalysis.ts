@@ -7,6 +7,7 @@ import { safeSerialize, sendStatus } from "./utils";
 import { fetchAppData } from "@/server/review-analyzer/services/dataFetcher";
 import {
   analyzeAppReviews,
+  analyzeReviews,
   type AnalysisUpdate,
 } from "@/server/review-analyzer/services/reviewAnalyzer";
 import {
@@ -88,7 +89,9 @@ export async function processAppAnalysis(
     const analysisGenerator = analyzeAppReviews(appInfo, reviews);
 
     // Process each update from the generator
-    let analysis: AppAnalysis | null = null;
+    let analysis:
+      | (AppAnalysis & Awaited<ReturnType<typeof analyzeReviews>>)
+      | null = null;
 
     for await (const update of analysisGenerator) {
       // Check if the update is a status/error update or the final analysis result
@@ -107,7 +110,8 @@ export async function processAppAnalysis(
         );
       } else {
         // It's the final analysis
-        analysis = update as AppAnalysis;
+        analysis = update as AppAnalysis &
+          Awaited<ReturnType<typeof analyzeReviews>>;
       }
     }
 
@@ -120,11 +124,16 @@ export async function processAppAnalysis(
       type: "analysis_results",
       appId: appInfo.appId,
       appName: appInfo.name,
-      ...analysis.overview,
-      topFeatures: analysis.featureAnalysis.map((f) => ({
-        feature: f.feature,
-        sentiment: f.sentimentScore.toFixed(2),
-        mentions: f.mentionCount,
+      strengths: analysis.strengths,
+      weaknesses: analysis.weaknesses,
+      opportunities: analysis.overview.opportunities,
+      threats: analysis.overview.threats,
+      marketPosition: analysis.overview.marketPosition,
+      targetDemographic: analysis.overview.targetDemographic,
+      topFeatures: analysis.keyFeatures.features.map((f) => ({
+        description: f.description,
+        title: f.name,
+        reviewIds: f.reviewIds,
       })),
       pricing: {
         valueForMoney: analysis.pricingPerception.valueForMoney.toFixed(2),
@@ -138,6 +147,62 @@ export async function processAppAnalysis(
         impact: r.impact,
       })),
     };
+
+    // Extract review ID mappings if they exist
+    const rawData = analysis;
+
+    // Create review ID mappings if they exist
+    if (
+      rawData.strengths ||
+      rawData.weaknesses ||
+      rawData.sentiment?.reviewMap ||
+      rawData.keyFeatures?.features
+    ) {
+      const strengthsReviewMap: Record<string, number[]> = {};
+      const weaknessesReviewMap: Record<string, number[]> = {};
+      let sentimentReviewMap = {};
+      const featuresReviewMap: Record<string, number[]> = {};
+
+      // Process strengths
+      if (rawData.strengths) {
+        rawData.strengths.forEach((strength) => {
+          if (strength.title && strength.reviewIds) {
+            strengthsReviewMap[strength.title] = strength.reviewIds;
+          }
+        });
+      }
+
+      // Process weaknesses
+      if (rawData.weaknesses) {
+        rawData.weaknesses.forEach((weakness) => {
+          if (weakness.title && weakness.reviewIds) {
+            weaknessesReviewMap[weakness.title] = weakness.reviewIds;
+          }
+        });
+      }
+
+      // Process sentiment review map
+      if (rawData.sentiment?.reviewMap) {
+        sentimentReviewMap = rawData.sentiment.reviewMap;
+      }
+
+      // Process features
+      if (rawData.keyFeatures?.features) {
+        rawData.keyFeatures.features.forEach((feature) => {
+          if (feature.name && feature.reviewIds) {
+            featuresReviewMap[feature.name] = feature.reviewIds;
+          }
+        });
+      }
+
+      // Add review mappings to results
+      analysisResults.reviewMappings = {
+        strengthsReviewMap,
+        weaknessesReviewMap,
+        sentimentReviewMap,
+        featuresReviewMap,
+      };
+    }
 
     // Send analysis to client as a serializable object
     dataStream.writeData(safeSerialize(analysisResults));

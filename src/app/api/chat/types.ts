@@ -19,16 +19,24 @@ export interface AnalysisResultsData {
   type: string;
   appId: string;
   appName: string;
-  strengths: string[];
-  weaknesses: string[];
+  strengths: {
+    description: string;
+    title: string;
+    reviewIds: number[];
+  }[];
+  weaknesses: {
+    description: string;
+    title: string;
+    reviewIds: number[];
+  }[];
   opportunities: string[];
   marketPosition: string;
   targetDemographic: string;
   threats: string[];
   topFeatures: {
-    feature: string;
-    sentiment: string;
-    mentions: number;
+    description: string;
+    title: string;
+    reviewIds: number[];
   }[];
   pricing: {
     valueForMoney: string;
@@ -40,6 +48,12 @@ export interface AnalysisResultsData {
     priority: string;
     impact: string;
   }[];
+  reviewMappings?: {
+    strengthsReviewMap?: Record<string, number[]>;
+    weaknessesReviewMap?: Record<string, number[]>;
+    sentimentReviewMap?: Record<string, number[]>;
+    featuresReviewMap?: Record<string, number[]>;
+  };
 }
 
 export interface FeatureData {

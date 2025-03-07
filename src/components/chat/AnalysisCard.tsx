@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Award,
   CheckCircle,
@@ -10,13 +10,45 @@ import {
   CheckCircle2Icon,
   AlertCircle,
   LightbulbIcon,
+  Info,
+  ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
-import type { AnalysisResultsData } from "../types";
+import type { AnalysisResultsData } from "@/components/types";
 import { motion } from "framer-motion";
 import { Separator } from "../ui/separator";
+import { api } from "@/trpc/react";
+
+// Type definition for a review
+interface Review {
+  id: string;
+  reviewId: string;
+  userName: string;
+  userImage?: string | null;
+  date: string;
+  score: number;
+  title?: string | null;
+  text: string;
+  thumbsUp?: number | null;
+  version?: string | null;
+}
 
 interface AnalysisCardProps {
   result: AnalysisResultsData;
@@ -33,11 +65,70 @@ export default function AnalysisCard({
     return value.toFixed(2);
   };
 
-  const colors = {
-    blue: "bg-blue-50 border-blue-100",
-    rose: "bg-rose-50 border-rose-100",
+  // State for storing review dialog data
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedReviewIds, setSelectedReviewIds] = useState<number[]>([]);
+  const [dialogTitle, setDialogTitle] = useState<string>("");
+  const [dialogDescription, setDialogDescription] = useState<string>("");
+
+  // Fetch reviews using TRPC
+  const { data: reviews, isLoading } = api.reviews.getReviewsByIds.useQuery(
+    { reviewIds: selectedReviewIds },
+    { enabled: reviewDialogOpen && selectedReviewIds.length > 0 },
+  );
+
+  // Function to handle showing reviews
+  const handleShowReviews = (
+    title: string,
+    description: string,
+    reviewIds: number[] = [],
+  ) => {
+    setDialogTitle(title);
+    setDialogDescription(description);
+    setSelectedReviewIds(reviewIds);
+    setReviewDialogOpen(true);
+  };
+  console.log(result);
+  // Check if review mappings exist
+  const hasReviewMappings = result.reviewMappings !== undefined;
+
+  // Helper to get review IDs for a specific strength
+  const getStrengthReviewIds = (strength: {
+    description: string;
+    title: string;
+    reviewIds: number[];
+  }): number[] => {
+    if (!hasReviewMappings) return [];
+    return strength.reviewIds;
   };
 
+  // Helper to get review IDs for a specific weakness
+  const getWeaknessReviewIds = (weakness: {
+    description: string;
+    title: string;
+    reviewIds: number[];
+  }): number[] => {
+    if (!hasReviewMappings) return [];
+    return weakness.reviewIds;
+  };
+
+  const getSentimentReviewIds = (sentiment: {
+    description: string;
+    title: string;
+    reviewIds: number[];
+  }): number[] => {
+    if (!hasReviewMappings) return [];
+    return sentiment.reviewIds;
+  };
+
+  const getFeatureReviewIds = (feature: {
+    description: string;
+    title: string;
+    reviewIds: number[];
+  }): number[] => {
+    if (!hasReviewMappings) return [];
+    return feature.reviewIds;
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -95,14 +186,38 @@ export default function AnalysisCard({
                   Key Strengths
                 </h4>
                 <ul className="space-y-2">
-                  {result.strengths.map((strength, index) => (
-                    <li key={index} className="flex items-start text-sm">
-                      <CheckCircle
-                        className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
-                      />
-                      <span className="text-gray-700">{strength}</span>
-                    </li>
-                  ))}
+                  {result.strengths.map((strength, index) => {
+                    const reviewIds = getStrengthReviewIds(strength);
+                    const hasReviews = reviewIds?.length > 0;
+
+                    return (
+                      <li key={index} className="flex items-start text-sm">
+                        <CheckCircle
+                          className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
+                        />
+                        <span className="text-gray-700">{strength.title}</span>
+
+                        {hasReviews && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-6 px-2 text-xs"
+                            onClick={() =>
+                              handleShowReviews(
+                                `Supporting Reviews for: ${strength.title}`,
+                                strength.description,
+                                reviewIds,
+                              )
+                            }
+                          >
+                            <Info className="mr-1 h-3 w-3" />
+                            {reviewIds.length}{" "}
+                            {reviewIds.length === 1 ? "review" : "reviews"}
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </TabsContent>
@@ -115,12 +230,36 @@ export default function AnalysisCard({
                   Areas for Improvement
                 </h4>
                 <ul className="space-y-2">
-                  {result.weaknesses.map((weakness, index) => (
-                    <li key={index} className="flex items-start text-sm">
-                      <AlertCircle className="mr-2 mt-0.5 h-4 w-4 text-red-500" />
-                      <span className="text-gray-700">{weakness}</span>
-                    </li>
-                  ))}
+                  {result.weaknesses.map((weakness, index) => {
+                    const reviewIds = getWeaknessReviewIds(weakness);
+                    const hasReviews = reviewIds?.length > 0;
+
+                    return (
+                      <li key={index} className="flex items-start text-sm">
+                        <AlertCircle className="mr-2 mt-0.5 h-4 w-4 text-red-500" />
+                        <span className="text-gray-700">{weakness.title}</span>
+
+                        {hasReviews && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-6 px-2 text-xs"
+                            onClick={() =>
+                              handleShowReviews(
+                                `Supporting Reviews for: ${weakness.title}`,
+                                weakness.description,
+                                reviewIds,
+                              )
+                            }
+                          >
+                            <Info className="mr-1 h-3 w-3" />
+                            {reviewIds.length}{" "}
+                            {reviewIds.length === 1 ? "review" : "reviews"}
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </TabsContent>
@@ -169,33 +308,43 @@ export default function AnalysisCard({
                   Top Features
                 </h4>
                 <ul className="space-y-2">
-                  {result.topFeatures.map((feature, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start justify-between text-sm"
-                    >
-                      <div className="flex items-start">
-                        <CheckCircle
-                          className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
-                        />
-                        <span className="text-gray-700">{feature.feature}</span>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Badge
-                          variant="outline"
-                          className="border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
-                        >
-                          {formatSentiment(feature.sentiment)}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className="border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
-                        >
-                          {feature.mentions} mentions
-                        </Badge>
-                      </div>
-                    </li>
-                  ))}
+                  {result.topFeatures.map((feature, index) => {
+                    const reviewIds = getFeatureReviewIds(feature);
+                    const hasReviews = reviewIds?.length > 0;
+
+                    return (
+                      <li
+                        key={index}
+                        className="flex items-start justify-between text-sm"
+                      >
+                        <div className="flex items-start">
+                          <CheckCircle
+                            className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
+                          />
+                          <span className="text-gray-700">{feature.title}</span>
+                        </div>
+
+                        {hasReviews && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-6 px-2 text-xs"
+                            onClick={() =>
+                              handleShowReviews(
+                                `Supporting Reviews for: ${feature.title}`,
+                                feature.description,
+                                reviewIds,
+                              )
+                            }
+                          >
+                            <Info className="mr-1 h-3 w-3" />
+                            {reviewIds.length}{" "}
+                            {reviewIds.length === 1 ? "review" : "reviews"}
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </TabsContent>
@@ -282,6 +431,92 @@ export default function AnalysisCard({
           </div>
         </div>
       </div>
+
+      {/* Review Details Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogDescription>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <p className="text-sm text-gray-500">Loading reviews...</p>
+                </div>
+              ) : !reviews || reviews.length === 0 ? (
+                <p className="pt-2 text-sm text-gray-500">
+                  No review data available.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm text-gray-700">{dialogDescription}</p>
+                  {reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="rounded-lg border border-gray-200 p-4"
+                    >
+                      <div className="mb-2 flex items-end justify-start">
+                        {/* <div className="flex items-center">
+                          {review.userImage && (
+                            <img
+                              src={review.userImage}
+                              alt={review.userName}
+                              className="mr-2 h-6 w-6 rounded-full"
+                            />
+                          )}
+                          <h3 className="text-sm font-medium text-gray-900">
+                            {review.userName}
+                          </h3>
+                        </div> */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-3 w-3 ${
+                                  i < review.score
+                                    ? "fill-amber-400 text-amber-400"
+                                    : "fill-gray-200 text-gray-200"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {new Date(review.date).toLocaleDateString()}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {review.title && (
+                        <p className="mb-1 text-sm font-medium">
+                          {review.title}
+                        </p>
+                      )}
+
+                      <p className="text-sm text-gray-700">{review.text}</p>
+
+                      <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                        {review.version && (
+                          <span>Version: {review.version}</span>
+                        )}
+                        {review.thumbsUp !== undefined &&
+                          review.thumbsUp !== null &&
+                          review.thumbsUp > 0 && (
+                            <span className="flex items-center">
+                              <CheckCircle2Icon className="mr-1 h-3 w-3" />
+                              {review.thumbsUp}{" "}
+                              {review.thumbsUp === 1 ? "person" : "people"}{" "}
+                              found this helpful
+                            </span>
+                          )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
