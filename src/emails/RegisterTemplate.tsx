@@ -51,7 +51,7 @@ const SeoArticlesMagicLink = ({ loginUrl }: BedtimefableMagicLinkProps) => (
       <Container>
         <div style={styles.container}>
           <Img
-            src={`${baseUrl}/logo.webp`}
+            src={`${baseUrl}/logo.png`}
             height="40"
             alt="clashofapps.com"
             style={styles.img}
