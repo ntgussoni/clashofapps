@@ -15,7 +15,7 @@ export const siteConfig = {
   url: "https://clashofapps.com",
 
   // Contact information
-  email: "support@clashofapps.com",
+  email: "hey@clashofapps.com",
 
   // Social media profiles
   twitter: "https://twitter.com/clashofapps",
