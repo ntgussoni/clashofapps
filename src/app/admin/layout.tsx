@@ -5,6 +5,20 @@ import { AppHeader } from "@/components/app-header";
 import { auth } from "@/server/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { type Metadata } from "next";
+import { siteConfig } from "@/lib/config";
+
+export const metadata: Metadata = {
+  title: `${siteConfig.name} - Admin Dashboard`,
+  description: "Administrative dashboard for Clash of Apps.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+  other: {
+    "cache-control": "no-store, max-age=0",
+  },
+};
 
 export default async function AdminLayout({
   children,

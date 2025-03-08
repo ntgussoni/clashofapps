@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "20"
+    "node": ">=20"
   },
   "scripts": {
     "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" next build",
@@ -54,6 +54,7 @@
     "@types/uuid": "^10.0.0",
     "@vercel/otel": "^1.10.1",
     "ai": "^4.1.47",
+    "autoprefixer": "^10.4.20",
     "better-auth": "^1.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -73,6 +74,7 @@
     "react-markdown": "^10.0.0",
     "resend": "^4.1.2",
     "server-only": "^0.0.1",
+    "sharp": "^0.33.5",
     "sonner": "^2.0.1",
     "superjson": "^2.2.1",
     "tailwind-merge": "^3.0.2",
@@ -89,7 +91,7 @@
     "@typescript-eslint/parser": "^8.1.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.0.1",
-    "postcss": "^8.4.39",
+    "postcss": "^8.5.3",
     "prettier": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.5",
     "prisma": "^5.14.0",

@@ -115,11 +115,11 @@ export function HeroSection() {
 
       {/* Hero Content */}
       <div className="relative z-10 flex flex-1 items-center">
-        <div className="container mx-auto px-4 py-16 md:py-24">
-          <div className="mx-auto max-w-4xl space-y-10 text-center">
+        <div className="container mx-auto px-4 py-12 sm:py-16 md:py-24">
+          <div className="mx-auto max-w-4xl space-y-6 text-center sm:space-y-10">
             {isClient && (
               <motion.h1
-                className="flex flex-col items-center text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl"
+                className="flex flex-col items-center text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, ease: "easeOut" }}
@@ -130,22 +130,22 @@ export function HeroSection() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
                 >
-                  Skip Years of Feature Experimentation
+                  Build What Users Already Want
                 </motion.span>
                 <motion.span
-                  className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text pt-4 text-transparent"
+                  className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text pt-2 text-transparent sm:pt-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.5 }}
                 >
-                  Build What Users Already Want
+                  From day one
                 </motion.span>
               </motion.h1>
             )}
 
             {isClient && (
               <motion.p
-                className="mx-auto max-w-2xl text-lg font-light tracking-tight text-gray-300 md:text-xl"
+                className="mx-auto max-w-2xl text-base font-light tracking-tight text-gray-300 sm:text-lg md:text-xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.7 }}
@@ -156,11 +156,13 @@ export function HeroSection() {
                   role="img"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="mb-1 ml-4 mr-2 inline-block h-6 fill-white"
+                  className="mb-1 ml-2 mr-1 inline-block h-5 fill-white sm:ml-4 sm:mr-2 sm:h-6"
                 >
                   <path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z" />
                 </svg>
-                <span className="mr-4 font-semibold">Google Play Store</span>{" "}
+                <span className="mr-2 font-semibold sm:mr-4">
+                  Google Play Store
+                </span>{" "}
                 links and get instant insights on which features to prioritize
                 and which flaws to avoid in your development.
               </motion.p>
@@ -168,7 +170,7 @@ export function HeroSection() {
 
             {isClient && (
               <motion.div
-                className="mx-auto w-full max-w-2xl space-y-4"
+                className="mx-auto w-full max-w-2xl space-y-3 sm:space-y-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.9 }}
@@ -179,12 +181,12 @@ export function HeroSection() {
                     placeholder="Paste Google Play Store link here..."
                     value={link}
                     onChange={(e) => handleLinkChange(index, e.target.value)}
-                    className="h-12 border-gray-700 bg-white/10 text-white backdrop-blur-md placeholder:text-gray-400 focus:border-cyan-400 focus:ring-cyan-400/20"
+                    className="h-10 border-gray-700 bg-white/10 text-white backdrop-blur-md placeholder:text-gray-400 focus:border-cyan-400 focus:ring-cyan-400/20 sm:h-12"
                   />
                 ))}
 
                 <motion.div
-                  className="flex flex-col justify-center gap-4 sm:flex-row"
+                  className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 1.1 }}
@@ -192,18 +194,18 @@ export function HeroSection() {
                   <Button
                     onClick={handleAddLink}
                     variant="outline"
-                    className="h-12 border-gray-700 bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:text-white"
+                    className="h-10 border-gray-700 bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:text-white sm:h-12"
                   >
-                    <Plus className="mr-2 h-5 w-5" />
+                    <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     Add Another App
                   </Button>
 
                   <Button
                     onClick={handleCompare}
-                    className="h-12 bg-gradient-to-r from-emerald-500 to-teal-500 text-white transition-all hover:from-emerald-600 hover:to-teal-600"
+                    className="h-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-white transition-all hover:from-emerald-600 hover:to-teal-600 sm:h-12"
                   >
                     Compare Apps
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </motion.div>
               </motion.div>
@@ -211,7 +213,7 @@ export function HeroSection() {
 
             {isClient && (
               <motion.div
-                className="pt-6 text-sm text-gray-400"
+                className="pt-4 text-xs text-gray-400 sm:pt-6 sm:text-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 1.3 }}

@@ -6,6 +6,38 @@ import { Footer } from "@/components/footer";
 import { auth } from "@/server/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { type Metadata } from "next";
+import { siteConfig } from "@/lib/config";
+
+export const metadata: Metadata = {
+  title: `${siteConfig.name} - Compare Apps`,
+  description:
+    "Compare multiple apps side by side. Analyze metrics, features, and performance to identify competitive advantages.",
+  openGraph: {
+    title: `${siteConfig.name} - Compare Apps Side by Side`,
+    description:
+      "Compare multiple apps side by side. Analyze metrics, features, and performance to identify competitive advantages.",
+    url: `${siteConfig.url}/compare`,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: `${siteConfig.url}/compare-og.png`,
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.name} App Comparison Tool`,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} - Compare Apps Side by Side`,
+    description:
+      "Compare multiple apps side by side. Analyze metrics, features, and performance to identify competitive advantages.",
+    creator: "@clashofapps",
+  },
+};
 
 export default async function CompareLayout({
   children,
@@ -17,7 +49,7 @@ export default async function CompareLayout({
   });
 
   if (!session) {
-    redirect("/login?referrer=" + window.location.href);
+    redirect("/login?referrer=/compare");
   }
 
   return (

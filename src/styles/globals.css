@@ -34,13 +34,9 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -61,11 +57,6 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
   }
 }
 
@@ -76,4 +67,180 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Responsive typography */
+@layer utilities {
+  /* Glass morphism effects */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md;
+  }
+
+  .glass-border {
+    @apply border border-white/10;
+  }
+
+  .glass-card {
+    @apply rounded-lg border border-white/10 bg-background/60 shadow-xl backdrop-blur-lg;
+  }
+
+  .glass-navbar {
+    @apply border-b border-white/10 bg-background/70 backdrop-blur-md;
+  }
+
+  /* Gradient elements */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(var(--primary), 0.4),
+      transparent
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Responsive typography classes */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  /* Responsive spacing */
+  .p-responsive {
+    @apply p-2 sm:p-4 md:p-6;
+  }
+
+  .px-responsive {
+    @apply px-2 sm:px-4 md:px-6;
+  }
+
+  .py-responsive {
+    @apply py-2 sm:py-4 md:py-6;
+  }
+
+  .m-responsive {
+    @apply m-2 sm:m-4 md:m-6;
+  }
+
+  .mx-responsive {
+    @apply mx-2 sm:mx-4 md:mx-6;
+  }
+
+  .my-responsive {
+    @apply my-2 sm:my-4 md:my-6;
+  }
+
+  .gap-responsive {
+    @apply gap-2 sm:gap-4 md:gap-6;
+  }
+
+  /* Responsive container */
+  .container-responsive {
+    @apply mx-auto w-full px-4 sm:px-6 md:px-8;
+    max-width: 100%;
+  }
+
+  @screen sm {
+    .container-responsive {
+      max-width: 640px;
+    }
+  }
+
+  @screen md {
+    .container-responsive {
+      max-width: 768px;
+    }
+  }
+
+  @screen lg {
+    .container-responsive {
+      max-width: 1024px;
+    }
+  }
+
+  @screen xl {
+    .container-responsive {
+      max-width: 1280px;
+    }
+  }
+
+  /* Improved touch targets for mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* Prevent content from being hidden under fixed headers */
+html {
+  scroll-padding-top: 5rem;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent layout shifts from scrollbars */
+html {
+  overflow-y: scroll;
+}
+
+/* Improved media query for dark mode preference */
+@media (prefers-color-scheme: dark) {
+  html.dark-mode-auto {
+    @apply dark;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Improved focus visible styles */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
