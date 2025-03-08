@@ -17,7 +17,7 @@ export default async function CompareLayout({
   });
 
   if (!session) {
-    redirect("/");
+    redirect("/login?referrer=" + window.location.href);
   }
 
   return (

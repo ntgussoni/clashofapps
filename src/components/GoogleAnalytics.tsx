@@ -29,5 +29,3 @@ export default function GoogleAnalytics({
     </>
   );
 }
-
-export default GoogleAnalytics;

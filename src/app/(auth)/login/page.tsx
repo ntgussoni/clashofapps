@@ -7,17 +7,16 @@ import { Label } from "@/components/ui/label";
 import { MailIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 import { AuthHeader } from "@/components/auth-header";
+import { redirect } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [showAlert, setShowAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = authClient.useSession();
 
   if (session) {
-    router.push("/");
+    redirect("/");
   }
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
