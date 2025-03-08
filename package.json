@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" next build",
     "check": "next lint && tsc --noEmit",
