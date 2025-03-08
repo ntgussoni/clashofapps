@@ -6,6 +6,7 @@ import { admin, createAuthMiddleware, magicLink } from "better-auth/plugins";
 import { sendMagicLink } from "../emails/send-magic-link";
 import * as Sentry from "@sentry/nextjs";
 export const auth = betterAuth({
+  trustedOrigins: ["https://www.clashofapps.com", "https://clashofapps.com"],
   database: prismaAdapter(db, {
     provider: "postgresql", // or "mysql", "postgresql", ...etc
   }),
