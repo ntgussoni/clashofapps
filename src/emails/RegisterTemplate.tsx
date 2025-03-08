@@ -15,9 +15,7 @@ interface BedtimefableMagicLinkProps {
   loginUrl: string;
 }
 
-const baseUrl = process.env.HOST
-  ? `https://${process.env.HOST}`
-  : "https://clashofapps.com";
+const baseUrl = process.env.HOST ?? "https://clashofapps.com";
 
 const SeoArticlesMagicLink = ({ loginUrl }: BedtimefableMagicLinkProps) => (
   <Html>
