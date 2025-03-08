@@ -7,7 +7,7 @@ import { safeSerialize, sendStatus } from "./utils";
 import { fetchAppData } from "@/server/review-analyzer/services/dataFetcher";
 import {
   analyzeAppReviews,
-  analyzeReviews,
+  type analyzeReviews,
   type AnalysisUpdate,
 } from "@/server/review-analyzer/services/reviewAnalyzer";
 import {
@@ -17,6 +17,32 @@ import {
   getAnalysisResultsFromDb,
 } from "@/server/review-analyzer/services/dbService";
 import type { AppAnalysis } from "@/server/review-analyzer/types";
+import { db } from "@/server/db";
+
+// Check if user has access to a specific app
+async function checkUserAppAccess(
+  userId: string,
+  appId: string,
+): Promise<boolean> {
+  try {
+    // Check if this user has any analyses that include this app
+    const userAnalysis = await db.analysis.findFirst({
+      where: {
+        userId: userId,
+        analysisApps: {
+          some: {
+            appId: appId,
+          },
+        },
+      },
+    });
+
+    return !!userAnalysis;
+  } catch (error) {
+    console.error("Error checking user app access:", error);
+    return false;
+  }
+}
 
 // Process a single app analysis
 export async function processAppAnalysis(
@@ -25,6 +51,18 @@ export async function processAppAnalysis(
   userId: string,
 ): Promise<AppAnalysisResult | null> {
   try {
+    // Check if user has access to this app
+    const hasAccess = await checkUserAppAccess(userId, appId);
+
+    if (!hasAccess) {
+      sendStatus(
+        dataStream,
+        "error",
+        `Access denied: You don't have permission to analyze app ${appId}`,
+      );
+      return null;
+    }
+
     // Update status for this specific app
     sendStatus(dataStream, "analyzing", `Fetching data for app ${appId}...`);
 

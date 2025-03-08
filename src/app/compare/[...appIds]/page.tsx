@@ -61,7 +61,7 @@ export default function CompareApps() {
   const [loadingAppInfo, setLoadingAppInfo] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [showComparisonSkeleton, setShowComparisonSkeleton] = useState(false);
-
+  const [completed, setCompleted] = useState(false);
   // Track processed data items to prevent duplicate processing
   const processedDataRef = useRef(new Set<string>());
 
@@ -149,6 +149,7 @@ export default function CompareApps() {
               setLoadingAppIds([]);
               setLoadingAppInfo(false);
               setLoadingAnalysis(false);
+              setCompleted(true);
               setShowComparisonSkeleton(false);
             }
           }
@@ -251,7 +252,7 @@ export default function CompareApps() {
   return (
     <div className="auto mx-auto flex w-full max-w-6xl flex-grow flex-col">
       {/* Status indicator */}
-      <StatusIndicator currentStatus={currentStatus} />
+      <StatusIndicator currentStatus={currentStatus} completed={completed} />
       <div className="overflow-x-auto">
         {/* App Info Cards */}
         {(appInfos.length > 0 || loadingAppInfo) && (

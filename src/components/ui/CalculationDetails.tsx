@@ -2,16 +2,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  CheckCircle2Icon,
-  XCircleIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  MinusIcon,
-  ArrowRightIcon,
-  BarChart3Icon,
-  CodeIcon,
-} from "lucide-react";
+import { ArrowRightIcon, BarChart3Icon, CodeIcon } from "lucide-react";
 
 interface CalculationDetailsProps {
   title: string;

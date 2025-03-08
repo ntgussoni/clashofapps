@@ -1,14 +1,18 @@
-import { Button } from "@/components/ui/button"
-import { Check } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 
 export function PricingSection() {
   return (
-    <section id="pricing" className="py-20 bg-muted/50">
+    <section id="pricing" className="bg-muted/50 py-20">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
-            <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">Pricing</div>
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Choose Your Plan</h2>
+            <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">
+              Pricing
+            </div>
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+              Choose Your Plan
+            </h2>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               Simple, transparent pricing for businesses of all sizes.
             </p>
@@ -19,11 +23,16 @@ export function PricingSection() {
           {/* Starter Plan */}
           <div className="flex flex-col rounded-xl border bg-card p-6 shadow-sm">
             <div className="space-y-2">
-              <h3 className="font-bold text-xl">Starter</h3>
-              <p className="text-muted-foreground text-sm">Perfect for indie developers and small teams.</p>
+              <h3 className="text-xl font-bold">Starter</h3>
+              <p className="text-sm text-muted-foreground">
+                Perfect for indie developers and small teams.
+              </p>
             </div>
             <div className="mt-4 flex items-baseline text-3xl font-bold">
-              $29<span className="text-muted-foreground text-sm font-normal">/month</span>
+              $29
+              <span className="text-sm font-normal text-muted-foreground">
+                /month
+              </span>
             </div>
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-center gap-2">
@@ -43,20 +52,24 @@ export function PricingSection() {
                 <span>Email support</span>
               </li>
             </ul>
-            <Button className="mt-6">Get Started</Button>
           </div>
 
           {/* Pro Plan */}
-          <div className="flex flex-col rounded-xl border-2 border-primary bg-card p-6 shadow-md relative">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full">
+          <div className="relative flex flex-col rounded-xl border-2 border-primary bg-card p-6 shadow-md">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 transform rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
               Most Popular
             </div>
             <div className="space-y-2">
-              <h3 className="font-bold text-xl">Pro</h3>
-              <p className="text-muted-foreground text-sm">For growing businesses and development teams.</p>
+              <h3 className="text-xl font-bold">Pro</h3>
+              <p className="text-sm text-muted-foreground">
+                For growing businesses and development teams.
+              </p>
             </div>
             <div className="mt-4 flex items-baseline text-3xl font-bold">
-              $79<span className="text-muted-foreground text-sm font-normal">/month</span>
+              $79
+              <span className="text-sm font-normal text-muted-foreground">
+                /month
+              </span>
             </div>
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-center gap-2">
@@ -88,11 +101,16 @@ export function PricingSection() {
           {/* Enterprise Plan */}
           <div className="flex flex-col rounded-xl border bg-card p-6 shadow-sm">
             <div className="space-y-2">
-              <h3 className="font-bold text-xl">Enterprise</h3>
-              <p className="text-muted-foreground text-sm">For large organizations with advanced needs.</p>
+              <h3 className="text-xl font-bold">Enterprise</h3>
+              <p className="text-sm text-muted-foreground">
+                For large organizations with advanced needs.
+              </p>
             </div>
             <div className="mt-4 flex items-baseline text-3xl font-bold">
-              $199<span className="text-muted-foreground text-sm font-normal">/month</span>
+              $199
+              <span className="text-sm font-normal text-muted-foreground">
+                /month
+              </span>
             </div>
             <ul className="mt-6 space-y-3 text-sm">
               <li className="flex items-center gap-2">
@@ -127,6 +145,5 @@ export function PricingSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }
-

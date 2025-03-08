@@ -6,6 +6,55 @@ import type {
   ComparisonData,
 } from "./types";
 import { generateAIRecommendations } from "./recommendations";
+import { db } from "@/server/db";
+
+// Check if user has access to all apps in a comparison
+async function checkUserComparisonAccess(
+  userId: string,
+  appIds: string[],
+): Promise<boolean> {
+  try {
+    // Get user's analyses that contain any of these app IDs
+    const userAnalyses = await db.analysis.findMany({
+      where: {
+        userId: userId,
+        analysisApps: {
+          some: {
+            appId: {
+              in: appIds,
+            },
+          },
+        },
+      },
+      include: {
+        analysisApps: {
+          where: {
+            appId: {
+              in: appIds,
+            },
+          },
+          select: {
+            appId: true,
+          },
+        },
+      },
+    });
+
+    // Extract all accessible app IDs
+    const accessibleAppIds = new Set<string>();
+    userAnalyses.forEach((analysis) => {
+      analysis.analysisApps.forEach((app) => {
+        accessibleAppIds.add(app.appId);
+      });
+    });
+
+    // Check if all requested app IDs are accessible to the user
+    return appIds.every((appId) => accessibleAppIds.has(appId));
+  } catch (error) {
+    console.error("Error checking user comparison access:", error);
+    return false;
+  }
+}
 
 // Function to process map entries for strengths
 export function processStrengthsMap(
@@ -52,7 +101,20 @@ export function processWeaknessesMap(
 // Function to generate cross-app comparison
 export async function generateComparison(
   appAnalyses: AppAnalysisResult[],
+  userId: string,
 ): Promise<ComparisonData> {
+  // Extract app IDs for authorization check
+  const appIds = appAnalyses.map((analysis) => analysis.appInfo.appId);
+
+  // Check if user has access to all apps
+  const hasAccess = await checkUserComparisonAccess(userId, appIds);
+
+  if (!hasAccess) {
+    throw new Error(
+      "Access denied: You don't have permission to compare one or more of these apps",
+    );
+  }
+
   // Prepare comparison data
   const comparisonData: ComparisonData = {
     type: "comparison_results",

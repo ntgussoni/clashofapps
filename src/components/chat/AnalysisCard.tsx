@@ -6,28 +6,19 @@ import {
   DollarSign,
   Star,
   Users,
-  TrendingUp,
   CheckCircle2Icon,
   AlertCircle,
   LightbulbIcon,
   Info,
-  ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -35,20 +26,6 @@ import type { AnalysisResultsData } from "@/components/types";
 import { motion } from "framer-motion";
 import { Separator } from "../ui/separator";
 import { api } from "@/trpc/react";
-
-// Type definition for a review
-interface Review {
-  id: string;
-  reviewId: string;
-  userName: string;
-  userImage?: string | null;
-  date: string;
-  score: number;
-  title?: string | null;
-  text: string;
-  thumbsUp?: number | null;
-  version?: string | null;
-}
 
 interface AnalysisCardProps {
   result: AnalysisResultsData;
@@ -110,15 +87,6 @@ export default function AnalysisCard({
   }): number[] => {
     if (!hasReviewMappings) return [];
     return weakness.reviewIds;
-  };
-
-  const getSentimentReviewIds = (sentiment: {
-    description: string;
-    title: string;
-    reviewIds: number[];
-  }): number[] => {
-    if (!hasReviewMappings) return [];
-    return sentiment.reviewIds;
   };
 
   const getFeatureReviewIds = (feature: {

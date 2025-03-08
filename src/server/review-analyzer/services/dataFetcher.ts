@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import gplay from "google-play-scraper";
 import type * as Gplay from "google-play-scraper";
 import { type AppInfo, type Review } from "../types";
@@ -31,7 +33,7 @@ export async function fetchAppData(
       lang: "",
       country: "",
       num: reviewCount,
-      sort: googlePlayScraper.sort.NEWEST,
+      sort: 2,
     });
 
     // Get historical reviews (if available) to analyze trends
@@ -42,11 +44,11 @@ export async function fetchAppData(
         lang: "",
         country: "",
         num: Math.min(50, reviewCount / 2),
-        sort: googlePlayScraper.sort.HELPFULNESS,
+        sort: 1, // HELPFULNESS
       });
       olderReviews = olderReviewsResult.data;
-    } catch (_) {
-      console.warn(`Could not fetch historical reviews for ${appId}`);
+    } catch (error) {
+      console.warn(`Could not fetch historical reviews for ${appId}:`, error);
     }
 
     // Combine reviews, ensuring no duplicates

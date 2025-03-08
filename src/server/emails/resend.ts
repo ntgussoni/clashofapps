@@ -11,7 +11,7 @@ type SendEmailOptions = {
   react: React.ReactElement | React.ReactNode | null;
 };
 export default async function sendEmail({
-  from = "HyperArticle.com <no-reply@hyperarticle.com>",
+  from = "clashofapps.com <no-reply@clashofapps.com>",
   react,
   subject,
   text,

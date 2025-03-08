@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * 1. CONTEXT
@@ -58,6 +59,12 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
     };
   },
 });
+
+const sentryMiddleware = t.middleware(
+  Sentry.trpcMiddleware({
+    attachRpcInput: true,
+  }),
+);
 
 /**
  * Create a server-side caller.
@@ -121,6 +128,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure
+  .use(sentryMiddleware)
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
     if (!ctx.session?.user) {

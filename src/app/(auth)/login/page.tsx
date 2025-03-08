@@ -1,11 +1,9 @@
 "use client";
-import Image from "next/image";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import LoginImage from "@/../public/login.webp";
 import { MailIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
@@ -15,6 +13,7 @@ import { AuthHeader } from "@/components/auth-header";
 export default function LoginPage() {
   const router = useRouter();
   const [showAlert, setShowAlert] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { data: session } = authClient.useSession();
 
   if (session) {
@@ -25,10 +24,12 @@ export default function LoginPage() {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const email = formData.get("email") as string;
+    setIsLoading(true);
     await authClient.signIn.magicLink({
       email,
     });
     setShowAlert(true);
+    setIsLoading(false);
   };
 
   return (
@@ -37,9 +38,9 @@ export default function LoginPage() {
         <div className="mx-auto grid w-[350px] gap-6">
           <AuthHeader />
           <div className="grid gap-4">
-            {showAlert && (
+            {showAlert && !isLoading && (
               <Alert
-                className="animate-animate-slidein300 mb-6 opacity-0"
+                className="mb-6 animate-animate-slidein300 opacity-0"
                 variant="default"
               >
                 <MailIcon className="mr-5 h-5 w-5" />
@@ -75,13 +76,13 @@ export default function LoginPage() {
                 spam, social, or other folders.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <hr className="flex-1 border-b border-foreground" />
               <p className="text-sm text-foreground">
                 Or use one of the following
               </p>
               <hr className="flex-1 border-b border-foreground" />
-            </div>
+            </div> */}
           </div>
           {/* <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
@@ -93,13 +94,7 @@ export default function LoginPage() {
       </div>
       <div className="relative hidden h-dvh w-full lg:flex">
         <div className="h-full w-full mix-blend-darken">
-          <Image
-            src={LoginImage}
-            alt="Image"
-            className="z-10 h-full w-full object-cover"
-            sizes="(max-width: 768px) 0, 50vw"
-            quality={80}
-          />
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-300 to-yellow-500" />
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ import {
 import { generateComparison } from "./comparison";
 import { processAppAnalysis } from "./appAnalysis";
 import type { AppAnalysisResult } from "./types";
+import { db } from "@/server/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +27,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!session) {
-      throw new Error("Unauthorized");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const userId = session.user.id;
@@ -50,6 +54,53 @@ export async function POST(req: NextRequest) {
 
     // Convert set to array
     const allAppIds = Array.from(allAppIdsSet);
+
+    // Verify user has access to these apps
+    if (allAppIds.length > 0) {
+      // Check if the user has analyses that include these app IDs
+      const userAnalyses = await db.analysis.findMany({
+        where: {
+          userId: userId,
+        },
+        include: {
+          analysisApps: {
+            where: {
+              appId: {
+                in: allAppIds,
+              },
+            },
+            select: {
+              appId: true,
+            },
+          },
+        },
+      });
+
+      // Extract all app IDs the user has access to
+      const accessibleAppIds = new Set<string>();
+      userAnalyses.forEach((analysis) => {
+        analysis.analysisApps.forEach((app) => {
+          accessibleAppIds.add(app.appId);
+        });
+      });
+
+      // Check if there are any app IDs the user doesn't have access to
+      const unauthorizedAppIds = allAppIds.filter(
+        (appId) => !accessibleAppIds.has(appId),
+      );
+
+      if (unauthorizedAppIds.length > 0) {
+        return new Response(
+          JSON.stringify({
+            error: `You don't have access to the following apps: ${unauthorizedAppIds.join(", ")}`,
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+    }
 
     // Create a data stream response
     return createDataStreamResponse({
@@ -125,7 +176,10 @@ export async function POST(req: NextRequest) {
               appAnalyses = existingComparison.appAnalyses;
             } else {
               // Generate new comparison
-              const comparisonData = await generateComparison(appAnalyses);
+              const comparisonData = await generateComparison(
+                appAnalyses,
+                userId,
+              );
               dataStream.writeData(safeSerialize(comparisonData));
 
               // Store the comparison in the database
@@ -147,6 +201,12 @@ export async function POST(req: NextRequest) {
               dataStream,
               "completed",
               "Analysis completed, but no valid results were found.",
+            );
+          } else {
+            sendStatus(
+              dataStream,
+              "completed",
+              "Analysis completed successfully.",
             );
           }
         } catch (error) {

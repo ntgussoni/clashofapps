@@ -17,7 +17,7 @@ interface BedtimefableMagicLinkProps {
 
 const baseUrl = process.env.HOST
   ? `https://${process.env.HOST}`
-  : "https://hyperarticle.com";
+  : "https://clashofapps.com";
 
 const SeoArticlesMagicLink = ({ loginUrl }: BedtimefableMagicLinkProps) => (
   <Html>
@@ -51,21 +51,21 @@ const SeoArticlesMagicLink = ({ loginUrl }: BedtimefableMagicLinkProps) => (
       <Container>
         <div style={styles.container}>
           <Img
-            src={`${baseUrl}/logo-dark.png`}
+            src={`${baseUrl}/logo.webp`}
             height="40"
-            alt="HyperArticle.com"
+            alt="clashofapps.com"
             style={styles.img}
           />
-          <Heading style={styles.heading}>Welcome to HyperArticle.com</Heading>
+          <Heading style={styles.heading}>Welcome to clashofapps.com</Heading>
           <Heading style={styles.subheading}>Your magic link is here!</Heading>
           <Link href={loginUrl} style={styles.button}>
-            Click here to login to HyperArticle
+            Click here to login to clashofapps.com
           </Link>
           <div style={styles.div}>
             <hr style={styles.hr} />
             <Text style={styles.text}>
               Or Click the following link to finish logging into
-              HyperArticle.com.
+              clashofapps.com.
             </Text>
             <Link href={loginUrl} style={styles.loginLink}>
               {loginUrl}
@@ -76,10 +76,10 @@ const SeoArticlesMagicLink = ({ loginUrl }: BedtimefableMagicLinkProps) => (
             <Text style={styles.subText}>
               Contact{" "}
               <Link
-                href="mailto:hey@hyperarticle.com"
+                href="mailto:hey@clashofapps.com"
                 style={styles.contactLink}
               >
-                hey@hyperarticle.com
+                hey@clashofapps.com
               </Link>{" "}
               if you did not request this code.
             </Text>
@@ -92,9 +92,9 @@ const SeoArticlesMagicLink = ({ loginUrl }: BedtimefableMagicLinkProps) => (
 
 const styles: Record<string, CSSProperties> = {
   body: {
-    backgroundColor: "hsl(22, 100%, 100%)", // --background
+    backgroundColor: "hsl(50, 100%, 97%)", // --background (yellow tint)
     fontFamily: "Lato, sans-serif",
-    color: "hsl(22, 5%, 10%)", // --foreground
+    color: "hsl(50, 10%, 10%)", // --foreground (dark yellow-black)
   },
   container: {
     margin: "0 auto",
@@ -102,8 +102,8 @@ const styles: Record<string, CSSProperties> = {
     maxWidth: "360px",
     gap: "1.5rem",
     borderRadius: "0.375rem",
-    border: "1px solid hsl(22, 30%, 82%)", // --border
-    backgroundColor: "hsl(22, 50%, 100%)", // --card
+    border: "1px solid hsl(50, 80%, 85%)", // --border (light yellow)
+    backgroundColor: "hsl(50, 100%, 98%)", // --card (off-white yellow)
     padding: "4rem 2rem",
     paddingBottom: "2rem",
     boxShadow:
@@ -123,7 +123,7 @@ const styles: Record<string, CSSProperties> = {
     marginBottom: "0",
     paddingBottom: "0",
     fontFamily: "Josefin Sans, sans-serif",
-    color: "hsl(22, 5%, 15%)", // --card-foreground
+    color: "hsl(50, 10%, 15%)", // --card-foreground (dark yellow-black)
   },
   subheading: {
     display: "inline-block",
@@ -140,9 +140,9 @@ const styles: Record<string, CSSProperties> = {
     display: "block",
     margin: "0 auto",
     padding: "16px 16px",
-    backgroundColor: "hsl(22, 75%, 43%)", // --primary
+    backgroundColor: "hsl(50, 90%, 50%)", // --primary (bright yellow)
     textAlign: "center",
-    color: "hsl(0, 0%, 100%)", // --primary-foreground
+    color: "hsl(50, 10%, 10%)", // --primary-foreground (dark text for contrast)
     textDecoration: "none",
     borderRadius: "8px",
     fontWeight: "500",
@@ -161,7 +161,7 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "0.875rem",
     fontWeight: "500",
     lineHeight: "1.5",
-    color: "hsl(22, 5%, 15%)", // --card-foreground
+    color: "hsl(50, 10%, 15%)", // --card-foreground (dark yellow-black)
     marginTop: "0.5rem",
     textAlign: "center",
   },
@@ -171,7 +171,7 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "0.875rem",
     fontWeight: "bold",
     lineHeight: "1rem",
-    color: "hsl(22, 75%, 43%)", // --primary
+    color: "hsl(50, 90%, 40%)", // --primary (darker yellow for link)
     textDecoration: "none",
     textAlign: "center",
   },
@@ -179,12 +179,12 @@ const styles: Record<string, CSSProperties> = {
     display: "inline-block",
     fontSize: "0.75rem",
     lineHeight: "1.5",
-    color: "hsl(22, 5%, 40%)", // --muted-foreground
+    color: "hsl(50, 15%, 40%)", // --muted-foreground (muted yellow-gray)
     marginTop: "0.5rem",
     margin: "0",
   },
   contactLink: {
-    color: "hsl(22, 75%, 43%)", // --primary
+    color: "hsl(50, 90%, 40%)", // --primary (darker yellow for link)
     textDecoration: "underline",
   },
 };

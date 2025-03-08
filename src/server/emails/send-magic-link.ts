@@ -8,8 +8,8 @@ export const sendMagicLink: Parameters<
   const { email } = params;
   await sendEmail({
     to: email,
-    subject: "Your login link for HyperArticle.com",
-    text: `Your login link to HyperArticle.com! Click the link below to sign in to your account:\n\n${params.url}`,
+    subject: "Your login link for clashofapps.com",
+    text: `Your login link to clashofapps.com! Click the link below to sign in to your account:\n\n${params.url}`,
     react: RegisterTemplate({
       loginUrl: params.url,
     }),
