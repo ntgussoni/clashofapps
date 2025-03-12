@@ -46,8 +46,9 @@ export default async function MainLayout({
 
   return (
     <div className="relative flex min-h-screen flex-col">
-      <AppHeader initialSession={session} fixed={false} />
+      <AppHeader initialSession={session} />
       <main className="flex-1">{children}</main>
+      <Footer />
     </div>
   );
 }

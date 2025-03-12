@@ -54,6 +54,11 @@ export function AppHeader({
     { name: "Pricing", href: "#pricing" },
   ];
 
+  const loggedInNavigation = [
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "New Comparison", href: "/new-analysis" },
+  ];
+
   return (
     <header
       className={cn(
@@ -71,23 +76,39 @@ export function AppHeader({
               height={40}
               className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
             />
-            <span className="bg-gradient-to-r from-orange-300 to-amber-300 bg-clip-text text-lg font-extrabold tracking-tight text-transparent sm:text-xl">
-              Clash<span className="font-light"> of </span> apps
+            <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-lg font-extrabold tracking-tight text-transparent shadow-black drop-shadow-sm sm:text-xl">
+              CLASH<span className="font-light"> of </span> APPS
             </span>
           </Link>
         </div>
 
         {/* Desktop Navigation - Now properly centered */}
         <nav className="hidden w-1/3 items-center justify-center gap-4 md:flex md:gap-6">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="text-sm font-medium hover:text-primary"
-            >
-              {item.name}
-            </Link>
-          ))}
+          {session ? (
+            <>
+              {loggedInNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="text-sm font-medium hover:text-primary"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </>
+          ) : (
+            <>
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="text-sm font-medium hover:text-primary"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </>
+          )}
         </nav>
 
         {/* Auth Buttons */}
@@ -176,17 +197,17 @@ export function AppHeader({
                   </span>
                 </div>
                 <nav className="flex flex-col space-y-4">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="text-sm font-medium hover:text-primary"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
                   {session ? (
                     <>
+                      {loggedInNavigation.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className="text-sm font-medium hover:text-primary"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
                       <div className="py-2 text-sm font-medium">
                         {session.user?.name || session.user?.email}
                       </div>
@@ -200,6 +221,15 @@ export function AppHeader({
                     </>
                   ) : (
                     <>
+                      {navigation.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className="text-sm font-medium hover:text-primary"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
                       <Button
                         variant="ghost"
                         className="justify-start text-sm font-medium hover:text-primary"

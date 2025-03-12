@@ -63,7 +63,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Initialize app IDs array
-    const allAppStoreIds = analysis.analysisApps.map((aa) => aa.appStoreId);
+    const allAnalysisApps = analysis.analysisApps.map((aa) => ({
+      id: aa.id,
+      appStoreId: aa.appStoreId,
+    }));
 
     // Create a data stream response
     return createDataStreamResponse({
@@ -73,17 +76,17 @@ export async function POST(req: NextRequest) {
           sendStatus(
             dataStream,
             "analyzing",
-            `Analyzing ${allAppStoreIds.length} app${
-              allAppStoreIds.length > 1 ? "s" : ""
-            }: ${allAppStoreIds.join(", ")}`,
+            `Analyzing ${allAnalysisApps.length} app${
+              allAnalysisApps.length > 1 ? "s" : ""
+            }: ${allAnalysisApps.map((aa) => aa.appStoreId).join(", ")}`,
           );
 
           // Store app info and analysis results for all apps
           const appAnalyses: AppAnalysisResult[] = [];
 
           // Process all apps in parallel
-          const analysisPromises = allAppStoreIds.map((appStoreId) =>
-            processAppAnalysis(appStoreId, dataStream, userId, {
+          const analysisPromises = allAnalysisApps.map((aa) =>
+            processAppAnalysis(aa.id, aa.appStoreId, dataStream, userId, {
               traceId: parentTraceId,
               userEmail,
             }),
@@ -99,7 +102,7 @@ export async function POST(req: NextRequest) {
           appAnalyses.push(...validResults);
 
           // Generate and send cross-app comparison if we have multiple apps in total
-          if (allAppStoreIds.length > 1 && appAnalyses.length > 1) {
+          if (allAnalysisApps.length > 1 && appAnalyses.length > 1) {
             sendStatus(
               dataStream,
               "analyzing",
@@ -133,7 +136,7 @@ export async function POST(req: NextRequest) {
                 userEmail,
               });
               dataStream.writeData(safeSerialize(comparisonData));
-
+              console.log(analysis.id);
               await storeComparisonResults(
                 analysis.id,
                 appAnalyses.map((app) => app.appInfo.id),

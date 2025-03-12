@@ -143,15 +143,23 @@ export const analysisRouter = createTRPCRouter({
         createdAt: "desc",
       },
     });
+    const mappedAnalyses = analyses.map((analysis) => {
+      // Keep app data grouped together to maintain relationships
+      const apps = analysis.analysisApps.map((aa) => ({
+        id: aa.app?.id,
+        appStoreId: aa.app?.appStoreId,
+        name: aa.app?.name,
+        icon: aa.app?.icon,
+      }));
 
-    return analyses
-      .filter((analysis) => analysis.analysisApps.every((aa) => aa.app))
-      .map((analysis) => ({
+      return {
         id: analysis.id,
         slug: analysis.slug,
-        appStoreIds: analysis.analysisApps.map((aa) => aa.app?.appStoreId),
-        appNames: analysis.analysisApps.map((aa) => aa.app?.name),
+        apps, // Only return the structured app data
         createdAt: analysis.createdAt,
-      }));
+      };
+    });
+
+    return mappedAnalyses;
   }),
 });

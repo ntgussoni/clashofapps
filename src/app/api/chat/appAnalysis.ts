@@ -19,6 +19,7 @@ import {
 
 // Process a single app analysis
 export async function processAppAnalysis(
+  analysisAppId: number,
   appStoreId: string,
   dataStream: DataStream,
   userId: string,
@@ -39,7 +40,7 @@ export async function processAppAnalysis(
       // If not in DB or data is stale, fetch from Google Play
       const { appInfo, reviews } = await fetchAppData(appStoreId);
       // Store the app data in the database
-      await storeAppData(appInfo, reviews);
+      await storeAppData(analysisAppId, appInfo, reviews);
       result = await getAppFromDb(appStoreId);
     }
 
@@ -217,9 +218,7 @@ export async function processAppAnalysis(
     dataStream.writeData(safeSerialize(analysisResults));
 
     // Store the analysis results in the database
-    if (userId) {
-      await storeAnalysisResults(userId, appInfo, analysis, analysisResults);
-    }
+    await storeAnalysisResults(appInfo, analysis, analysisResults);
 
     // Return the analysis data
     return {

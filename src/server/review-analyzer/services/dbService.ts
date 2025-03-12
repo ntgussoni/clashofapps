@@ -50,6 +50,7 @@ export async function getAppFromDb(appStoreId: string, maxAgeDays = 30) {
  * @param appInfo
  */
 export async function storeAppData(
+  analysisAppId: number,
   appInfo: AppInfo,
   reviews: Review[],
 ): Promise<void> {
@@ -89,6 +90,18 @@ export async function storeAppData(
         version: appInfo.version,
         rawData: appInfo as unknown as Prisma.InputJsonValue,
       },
+    });
+
+    // we need to connect it to the appAnalysis
+    await db.analysisApp.findFirstOrThrow({
+      where: {
+        id: analysisAppId,
+      },
+    });
+
+    await db.analysisApp.update({
+      where: { id: analysisAppId },
+      data: { appId: record.id },
     });
 
     // Store reviews
@@ -153,11 +166,10 @@ export async function storeAppReviews(
  * @returns
  */
 export async function storeAnalysisResults(
-  userId: string | null,
   appInfo: App,
   analysis: AppAnalysis,
   analysisResults: AnalysisResultsData,
-): Promise<number> {
+): Promise<void> {
   try {
     // Extract review ID mappings from the raw analysis result
     const rawAnalysis = analysis as unknown as {
@@ -252,31 +264,6 @@ export async function storeAnalysisResults(
         appAnalysisDataId: appAnalysisData.id,
       },
     });
-
-    // Generate a unique slug for the analysis
-    const appNameSlug = appInfo.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-    const uniqueSlug = `${appNameSlug}-${Date.now()}`;
-
-    // Create the analysis with a reference to the app
-    const analysisData = await db.analysis.create({
-      data: {
-        userId,
-        slug: uniqueSlug,
-        analysisDepth: "detailed", // Use a default value
-        reviewSample: 50, // Use a default value
-        analysisApps: {
-          create: {
-            appId: appInfo.id,
-            appStoreId: appInfo.appStoreId, // Use appId as appStoreId if they're the same
-          },
-        },
-      },
-    });
-
-    return analysisData.id;
   } catch (error) {
     console.error("Error storing analysis results:", error);
     throw error;
@@ -296,10 +283,15 @@ export async function storeComparisonResults(
   comparisonData: ComparisonData,
 ): Promise<number> {
   try {
+    console.log(analysisId);
     // Create the comparison data
     const comparisonResult = await db.comparisonData.create({
       data: {
-        analysisId,
+        analysis: {
+          connect: {
+            id: analysisId,
+          },
+        },
         featureComparison:
           comparisonData.featureComparison as unknown as Prisma.InputJsonValue,
         marketPositionComparison:
