@@ -1,5 +1,5 @@
+import { type DataStream } from "@/types";
 import type { JSONValue } from "ai";
-import type { DataStream } from "./types";
 
 // Helper function to safely serialize data for the data stream
 export function safeSerialize<T>(data: T): JSONValue {
