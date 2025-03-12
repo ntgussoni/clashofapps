@@ -69,7 +69,7 @@ export function HeroSection() {
       {/* Video Background */}
       <div className="absolute inset-0 z-0 h-full w-full">
         <video
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover opacity-90"
           autoPlay
           muted
           loop
@@ -77,12 +77,9 @@ export function HeroSection() {
           aria-hidden="true"
           preload="auto"
         >
-          <source
-            src="https://cdn.pixabay.com/video/2016/09/13/5192-183786490_large.mp4"
-            type="video/webm"
-          />
+          <source src="/video.mp4" type="video/mp4" />
         </video>
-        <div className="z-10 h-full w-full before:absolute before:inset-0 before:size-full before:bg-[radial-gradient(circle_at_center,_rgba(10,10,10,.3)_15%,_rgba(10,10,10,1)_45%)] before:content-['']" />
+        <div className="z-10 h-full w-full before:absolute before:inset-0 before:size-full before:bg-[radial-gradient(circle_at_center,_rgba(255,255,255,.6)_5%,_rgba(255,255,255,1)_60%)] before:content-['']" />
       </div>
 
       {/* Animated Background Elements */}
@@ -130,46 +127,42 @@ export function HeroSection() {
                 transition={{ duration: 0.7, ease: "easeOut" }}
               >
                 <motion.span
-                  className="block text-white shadow-white drop-shadow-lg"
+                  className="block font-black text-zinc-800 shadow-zinc-800/50 drop-shadow-lg"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
                 >
-                  Build What Users Already Want
+                  Track & Analyze
                 </motion.span>
                 <motion.span
-                  className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text pt-2 text-transparent drop-shadow-lg sm:pt-4"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500/90 bg-clip-text pt-2 text-transparent shadow-primary-foreground drop-shadow-lg sm:pt-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.5 }}
                 >
-                  From day one
+                  Your App Competitors
                 </motion.span>
               </motion.h1>
             )}
 
             {isClient && (
               <motion.p
-                className="mx-auto max-w-2xl text-base font-light tracking-tight text-gray-300 sm:text-lg md:text-xl"
+                className="mx-auto max-w-2xl text-base font-light tracking-tight text-primary sm:text-lg md:text-xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.7 }}
               >
-                Stop guessing what users want · See precisely why people love or
-                abandon your competitors&apos; apps · Enter{" "}
+                Enter a{" "}
                 <svg
                   role="img"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="mb-1 ml-2 mr-1 inline-block h-5 fill-white sm:ml-4 sm:mr-2 sm:h-6"
+                  className="mb-1 ml-2 mr-1 inline-block h-5 fill-primary sm:ml-4 sm:mr-2 sm:h-6"
                 >
                   <path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z" />
                 </svg>
-                <span className="mr-2 font-semibold sm:mr-4">
-                  Google Play Store
-                </span>{" "}
-                links and get instant insights on which features to prioritize
-                and which flaws to avoid in your development.
+                <span className="mr-2 font-semibold sm:mr-4">Play Store</span>{" "}
+                link to start monitoring your competition
               </motion.p>
             )}
 
@@ -183,10 +176,10 @@ export function HeroSection() {
                 {links.map((link, index) => (
                   <Input
                     key={index}
-                    placeholder="Paste Google Play Store link here..."
+                    placeholder="Example: https://play.google.com/store/apps/details?id=com.example.app"
                     value={link}
                     onChange={(e) => handleLinkChange(index, e.target.value)}
-                    className="h-10 border-gray-700 bg-white/10 text-white backdrop-blur-md placeholder:text-gray-400 focus:border-cyan-400 focus:ring-cyan-400/20 sm:h-12"
+                    className="h-10 border-gray-700 bg-white/10 text-primary backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20 sm:h-12"
                   />
                 ))}
 
@@ -211,7 +204,8 @@ export function HeroSection() {
                   <Button
                     onClick={handleAddLink}
                     variant="outline"
-                    className="h-10 border-gray-700 bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:text-white sm:h-12"
+                    size="lg"
+                    className="border-gray-700 bg-white/10 text-primary backdrop-blur-md transition-all hover:bg-white/20 hover:text-primary"
                   >
                     <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     Add Another App
@@ -219,7 +213,8 @@ export function HeroSection() {
 
                   <Button
                     onClick={handleCompare}
-                    className="h-10 bg-gradient-to-r from-emerald-500 to-teal-500 text-white transition-all hover:from-emerald-600 hover:to-teal-600 sm:h-12"
+                    size="lg"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white transition-all hover:from-emerald-600 hover:to-teal-600"
                   >
                     Compare Apps
                     <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />

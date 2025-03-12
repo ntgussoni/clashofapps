@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { authClient } from "@/lib/auth-client";
 import { AuthHeader } from "@/components/auth-header";
 import { redirect, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+// Create a client component that uses useSearchParams
+function LoginContent() {
   const searchParams = useSearchParams();
   const referrer = searchParams.get("referrer");
   const [showAlert, setShowAlert] = useState(false);
@@ -100,5 +101,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

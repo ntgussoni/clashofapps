@@ -61,8 +61,8 @@ export function AppHeader({
         fixed ? "fixed" : "relative",
       )}
     >
-      <div className="container flex h-14 items-center justify-between px-4 sm:h-16 sm:px-6">
-        <div className="flex items-center gap-1 sm:gap-2">
+      <div className="container flex h-14 items-center px-4 sm:h-16 sm:px-6">
+        <div className="flex w-1/3 items-center justify-start gap-1 sm:gap-2">
           <Link href="/" className="flex items-center gap-1 sm:gap-2">
             <Image
               src={Logo}
@@ -77,8 +77,8 @@ export function AppHeader({
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-4 md:flex md:gap-6">
+        {/* Desktop Navigation - Now properly centered */}
+        <nav className="hidden w-1/3 items-center justify-center gap-4 md:flex md:gap-6">
           {navigation.map((item) => (
             <Link
               key={item.name}
@@ -91,7 +91,7 @@ export function AppHeader({
         </nav>
 
         {/* Auth Buttons */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex w-1/3 items-center justify-end gap-2 sm:gap-4">
           {session ? (
             <>
               <DropdownMenu>
@@ -141,12 +141,6 @@ export function AppHeader({
               >
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button
-                className="hidden h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 sm:inline-flex sm:h-9 sm:px-4 sm:text-sm"
-                asChild
-              >
-                <Link href="/signup">Get Started</Link>
-              </Button>
             </>
           )}
 
@@ -177,7 +171,9 @@ export function AppHeader({
                     width={32}
                     height={32}
                   />
-                  <span className="text-lg font-bold">{siteConfig.name}</span>
+                  <span className="text-lg font-bold shadow-primary drop-shadow-lg">
+                    {siteConfig.name}
+                  </span>
                 </div>
                 <nav className="flex flex-col space-y-4">
                   {navigation.map((item) => (
@@ -210,12 +206,6 @@ export function AppHeader({
                         asChild
                       >
                         <Link href="/login">Log in</Link>
-                      </Button>
-                      <Button
-                        className="justify-start bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                        asChild
-                      >
-                        <Link href="/signup">Get Started</Link>
                       </Button>
                     </>
                   )}
