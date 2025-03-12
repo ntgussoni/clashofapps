@@ -1,6 +1,13 @@
 import { db } from "@/server/db";
-import type { AppAnalysis, AppInfo, Review } from "../types";
-import type { AnalysisResultsData, ComparisonData } from "@/app/api/chat/types";
+import {
+  type AppAnalysis,
+  type AppInfo,
+  type Review,
+  type AnalysisResultsData,
+  type ComparisonData,
+  type PricingComparisonItem,
+  type FeatureComparisonItem,
+} from "@/types";
 import { type App, type Prisma } from "@prisma/client";
 
 /**
@@ -9,12 +16,12 @@ import { type App, type Prisma } from "@prisma/client";
  * @param maxAgeDays
  * @returns
  */
-export async function getAppFromDb(appId: string, maxAgeDays = 30) {
+export async function getAppFromDb(appStoreId: string, maxAgeDays = 30) {
   // Check if app exists in database and is fresh (less than specified days old)
   try {
     const existingApp = await db.app.findFirst({
       where: {
-        appId,
+        appStoreId,
         lastFetched: {
           gte: new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000),
         },
@@ -48,9 +55,9 @@ export async function storeAppData(
 ): Promise<void> {
   try {
     // Store or update app data
-    await db.app.upsert({
+    const record = await db.app.upsert({
       where: {
-        appId: appInfo.appId,
+        appStoreId: appInfo.appId,
       },
       update: {
         name: appInfo.title,
@@ -68,7 +75,7 @@ export async function storeAppData(
         lastFetched: new Date(),
       },
       create: {
-        appId: appInfo.appId,
+        appStoreId: appInfo.appId,
         name: appInfo.title,
         icon: appInfo.icon,
         developer: appInfo.developer || "",
@@ -85,7 +92,7 @@ export async function storeAppData(
     });
 
     // Store reviews
-    await storeAppReviews(appInfo.appId, reviews);
+    await storeAppReviews(record.id, reviews);
   } catch (error) {
     console.error("Error storing app data:", error);
     throw error;
@@ -98,7 +105,7 @@ export async function storeAppData(
  * @param reviews
  */
 export async function storeAppReviews(
-  appId: string,
+  appId: number,
   reviews: Review[],
 ): Promise<void> {
   try {
@@ -172,14 +179,12 @@ export async function storeAnalysisResults(
         mixed: string[];
         reviewMap?: Record<string, string[]>;
       };
-      keyFeatures?: {
-        features: Array<{
-          name: string;
-          sentiment: string;
-          description: string;
-          reviewIds?: string[];
-        }>;
-      };
+      keyFeatures?: Array<{
+        feature: string;
+        sentiment: number;
+        mentions: number;
+        reviewIds?: number[];
+      }>;
     };
 
     // Create review ID mappings
@@ -207,45 +212,65 @@ export async function storeAnalysisResults(
     const sentimentReviewMap = rawAnalysis.sentiment?.reviewMap ?? {};
 
     const featuresReviewMap: Record<string, string[]> = {};
-    if (rawAnalysis.keyFeatures?.features) {
-      rawAnalysis.keyFeatures.features.forEach((feature) => {
-        if (feature.name && feature.reviewIds) {
-          featuresReviewMap[feature.name] = feature.reviewIds;
+    if (Array.isArray(rawAnalysis.keyFeatures)) {
+      rawAnalysis.keyFeatures.forEach((feature) => {
+        if (feature.feature && feature.reviewIds) {
+          featuresReviewMap[feature.feature] = feature.reviewIds.map((id) =>
+            id.toString(),
+          );
         }
       });
     }
 
-    // Use Prisma client to create the analysis
+    // Create app analysis data
+    const appAnalysisData = await db.appAnalysisData.create({
+      data: {
+        strengths: analysisResults.strengths as Prisma.InputJsonValue,
+        weaknesses: analysisResults.weaknesses as Prisma.InputJsonValue,
+        marketPosition: analysisResults.marketPosition,
+        targetDemographic: analysisResults.targetDemographic,
+        threats: analysisResults.threats as Prisma.InputJsonValue,
+        opportunities: analysisResults.opportunities as Prisma.InputJsonValue,
+        keyFeatures: analysis.keyFeatures as Prisma.InputJsonValue,
+        pricing: analysisResults.pricing as Prisma.InputJsonValue,
+        recommendations:
+          analysisResults.recommendations as Prisma.InputJsonValue,
+        rawAnalysis: analysis as unknown as Prisma.InputJsonValue,
+        strengthsReviewMap: strengthsReviewMap as Prisma.InputJsonValue,
+        weaknessesReviewMap: weaknessesReviewMap as Prisma.InputJsonValue,
+        sentimentReviewMap: sentimentReviewMap as Prisma.InputJsonValue,
+        featuresReviewMap: featuresReviewMap as Prisma.InputJsonValue,
+      },
+    });
+
+    // Update the app with the analysis data
+    await db.app.update({
+      where: {
+        id: appInfo.id,
+      },
+      data: {
+        appAnalysisDataId: appAnalysisData.id,
+      },
+    });
+
+    // Generate a unique slug for the analysis
+    const appNameSlug = appInfo.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    const uniqueSlug = `${appNameSlug}-${Date.now()}`;
+
+    // Create the analysis with a reference to the app
     const analysisData = await db.analysis.create({
       data: {
         userId,
-        title: `${appInfo.name} Analysis`,
+        slug: uniqueSlug,
         analysisDepth: "detailed", // Use a default value
         reviewSample: 50, // Use a default value
         analysisApps: {
           create: {
-            appId: appInfo.appId,
-            isMainApp: true,
-          },
-        },
-        singleAnalyses: {
-          create: {
-            appId: appInfo.appId,
-            strengths: analysisResults.strengths as Prisma.InputJsonValue,
-            weaknesses: analysisResults.weaknesses as Prisma.InputJsonValue,
-            marketPosition: analysisResults.marketPosition,
-            targetDemographic: analysisResults.targetDemographic,
-            threats: analysisResults.threats,
-            opportunities: analysisResults.opportunities,
-            topFeatures: analysisResults.topFeatures as Prisma.InputJsonValue,
-            pricing: analysisResults.pricing as Prisma.InputJsonValue,
-            recommendations:
-              analysisResults.recommendations as Prisma.InputJsonValue,
-            rawAnalysis: analysis as Prisma.InputJsonValue,
-            strengthsReviewMap: strengthsReviewMap as Prisma.InputJsonValue,
-            weaknessesReviewMap: weaknessesReviewMap as Prisma.InputJsonValue,
-            sentimentReviewMap: sentimentReviewMap as Prisma.InputJsonValue,
-            featuresReviewMap: featuresReviewMap as Prisma.InputJsonValue,
+            appId: appInfo.id,
+            appStoreId: appInfo.appStoreId, // Use appId as appStoreId if they're the same
           },
         },
       },
@@ -266,75 +291,42 @@ export async function storeAnalysisResults(
  * @returns
  */
 export async function storeComparisonResults(
-  userId: string | null,
-  appAnalyses: {
-    appInfo: App;
-    analysis: AppAnalysis;
-    analysisResults: AnalysisResultsData;
-  }[],
+  analysisId: number,
+  appAnalysesIds: number[],
   comparisonData: ComparisonData,
 ): Promise<number> {
   try {
-    const analysisData = await db.analysis.create({
+    // Create the comparison data
+    const comparisonResult = await db.comparisonData.create({
       data: {
-        userId,
-        title: `Comparison of ${appAnalyses.map((a) => a.appInfo.name).join(", ")}`,
-        analysisApps: {
-          create: appAnalyses.map((app) => ({
-            appId: app.appInfo.appId,
-            isMainApp: false,
-          })),
-        },
-        singleAnalyses: {
-          create: appAnalyses.map((app) => ({
-            appId: app.appInfo.appId,
-            strengths: app.analysisResults.strengths as Prisma.InputJsonValue,
-            weaknesses: app.analysisResults.weaknesses as Prisma.InputJsonValue,
-            marketPosition: app.analysisResults.marketPosition,
-            targetDemographic: app.analysisResults.targetDemographic,
-            threats: app.analysisResults.threats,
-            opportunities: app.analysisResults.opportunities,
-            topFeatures: app.analysisResults
-              .topFeatures as Prisma.InputJsonValue,
-            pricing: app.analysisResults.pricing as Prisma.InputJsonValue,
-            recommendations: app.analysisResults
-              .recommendations as Prisma.InputJsonValue,
-            rawAnalysis: app.analysis as Prisma.InputJsonValue,
-            strengthsReviewMap: app.analysisResults.reviewMappings
-              ?.strengthsReviewMap as Prisma.InputJsonValue,
-            weaknessesReviewMap: app.analysisResults.reviewMappings
-              ?.weaknessesReviewMap as Prisma.InputJsonValue,
-            sentimentReviewMap: app.analysisResults.reviewMappings
-              ?.sentimentReviewMap as Prisma.InputJsonValue,
-            featuresReviewMap: app.analysisResults.reviewMappings
-              ?.featuresReviewMap as Prisma.InputJsonValue,
-          })),
-        },
-        comparison: {
-          create: {
-            apps: comparisonData.apps as Prisma.InputJsonValue,
-            featureComparison:
-              comparisonData.featureComparison as unknown as Prisma.InputJsonValue,
-            strengthsComparison:
-              comparisonData.strengthsComparison as Prisma.InputJsonValue,
-            weaknessesComparison:
-              comparisonData.weaknessesComparison as Prisma.InputJsonValue,
-            marketPositionComparison:
-              comparisonData.marketPositionComparison as Prisma.InputJsonValue,
-            pricingComparison:
-              comparisonData.pricingComparison as Prisma.InputJsonValue,
-            userBaseComparison:
-              comparisonData.userBaseComparison as Prisma.InputJsonValue,
-            recommendationSummary:
-              comparisonData.recommendationSummary as Prisma.InputJsonValue,
-            rawComparisonData:
-              comparisonData as unknown as Prisma.InputJsonValue,
-          },
-        },
+        analysisId,
+        featureComparison:
+          comparisonData.featureComparison as unknown as Prisma.InputJsonValue,
+        marketPositionComparison:
+          comparisonData.marketPositionComparison as Prisma.InputJsonValue,
+        pricingComparison:
+          comparisonData.pricingComparison as unknown as Prisma.InputJsonValue,
+        userBaseComparison:
+          comparisonData.userBaseComparison as Prisma.InputJsonValue,
+        recommendationSummary:
+          comparisonData.recommendationSummary as Prisma.InputJsonValue,
+        reviews: comparisonData.reviews as unknown as Prisma.InputJsonValue,
       },
     });
 
-    return analysisData.id;
+    // Connect apps to the comparison data
+    for (const appId of appAnalysesIds) {
+      await db.app.update({
+        where: { id: appId },
+        data: {
+          ComparisonData: {
+            connect: { id: comparisonResult.id },
+          },
+        },
+      });
+    }
+
+    return comparisonResult.id;
   } catch (error) {
     console.error("Error storing comparison results:", error);
     throw error;
@@ -342,179 +334,201 @@ export async function storeComparisonResults(
 }
 
 /**
- * Get the most recent analysis results for an app from the database
- * @param appId The app ID to retrieve analysis for
- * @param maxAgeDays The maximum age of the analysis in days (default: 30)
- * @returns Analysis data or null if not found or expired
+ * Get analysis results from the database
  */
-export async function getAnalysisResultsFromDb(appId: string, maxAgeDays = 30) {
+export async function getAnalysisResultsFromDb(
+  appId: number,
+  _maxAgeDays = 30,
+) {
   try {
-    // Find the most recent analysis containing this app
-    const analysisApp = await db.analysisApp.findFirst({
+    // Find app first
+    const app = await db.app.findUnique({
       where: {
-        appId,
-        analysis: {
-          createdAt: {
-            gte: new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000),
-          },
-        },
-      },
-      orderBy: {
-        analysis: {
-          createdAt: "desc",
-        },
+        id: appId,
       },
       include: {
-        analysis: {
-          include: {
-            singleAnalyses: {
-              where: {
-                appId,
-              },
-              // Include all fields including the review mappings
-              select: {
-                id: true,
-                appId: true,
-                strengths: true,
-                weaknesses: true,
-                marketPosition: true,
-                targetDemographic: true,
-                threats: true,
-                opportunities: true,
-                topFeatures: true,
-                pricing: true,
-                recommendations: true,
-                rawAnalysis: true,
-                // Add the new review mapping fields
-                strengthsReviewMap: true,
-                weaknessesReviewMap: true,
-                sentimentReviewMap: true,
-                featuresReviewMap: true,
-              },
-            },
-          },
-        },
+        analysisData: true, // Include the linked AppAnalysisData
       },
     });
 
-    if (!analysisApp || !analysisApp.analysis.singleAnalyses.length) {
+    if (!app || !app.analysisData) {
       return null;
     }
 
-    const singleAnalysis = analysisApp.analysis.singleAnalyses[0];
+    const analysisData = app.analysisData;
 
-    // Ensure singleAnalysis exists before proceeding
-    if (!singleAnalysis) {
-      return null;
-    }
+    // Construct the AppAnalysis object directly from structured DB fields
+    const analysis: AppAnalysis = {
+      appName: app.name,
 
-    // Convert the stored data back to the expected format
+      // Convert from database JSON to typed structures
+      strengths: analysisData.strengths as unknown as {
+        description: string;
+        title: string;
+        reviewIds: number[];
+      }[],
+
+      weaknesses: analysisData.weaknesses as unknown as {
+        description: string;
+        title: string;
+        reviewIds: number[];
+      }[],
+
+      // Use keyFeatures directly - no transformation needed!
+      keyFeatures: analysisData.keyFeatures as unknown as {
+        feature: string;
+        sentiment: "positive" | "negative" | "neutral" | "mixed";
+        description: string;
+        reviewIds: number[];
+      }[],
+
+      overview: {
+        strengths: [],
+        weaknesses: [],
+        opportunities: analysisData.opportunities as unknown as string[],
+        threats: analysisData.threats as unknown as string[],
+        marketPosition: analysisData.marketPosition,
+        targetDemographic: analysisData.targetDemographic,
+      },
+
+      // Construct sentiment from database or provide defaults
+      sentiment: {
+        neutral: [],
+        overall: "",
+        positive: [],
+        negative: [],
+        mixed: [],
+        reviewMap: {},
+      },
+
+      pricingPerception: analysisData.pricing as unknown as {
+        valueForMoney: number;
+        pricingComplaints: number;
+        willingness: string;
+        reviewIds: number[];
+      },
+
+      recommendedActions: analysisData.recommendations as unknown as {
+        action: string;
+        priority: string;
+        impact: string;
+        timeframe?: string;
+        targetSegment?: string;
+      }[],
+    };
+
+    // Construct a properly structured result
     const analysisResults: AnalysisResultsData = {
       type: "analysis_results",
-      appId: appId,
-      appName: "", // Will be filled in by the app data
-      strengths: singleAnalysis.strengths as unknown as {
+      appId: app.id,
+      appName: app.name,
+      strengths: analysisData.strengths as unknown as {
         description: string;
         title: string;
         reviewIds: number[];
       }[],
-      weaknesses: singleAnalysis.weaknesses as unknown as {
+      weaknesses: analysisData.weaknesses as unknown as {
         description: string;
         title: string;
         reviewIds: number[];
       }[],
-      marketPosition: singleAnalysis.marketPosition,
-      targetDemographic: singleAnalysis.targetDemographic,
-      threats: singleAnalysis.threats as unknown as string[],
-      opportunities: singleAnalysis.opportunities as unknown as string[],
-      topFeatures: singleAnalysis.topFeatures as unknown as {
+      opportunities: analysisData.opportunities as unknown as string[],
+      marketPosition: analysisData.marketPosition,
+      targetDemographic: analysisData.targetDemographic,
+      threats: analysisData.threats as unknown as string[],
+      keyFeatures: analysisData.keyFeatures as unknown as {
+        feature: string;
+        sentiment: "positive" | "negative" | "neutral" | "mixed";
         description: string;
-        title: string;
         reviewIds: number[];
       }[],
-      pricing: singleAnalysis.pricing as unknown as {
+      pricing: analysisData.pricing as unknown as {
         valueForMoney: string;
-        pricingComplaints: string;
+        pricingComplaints: number;
         willingness: string;
+        reviewIds: number[];
       },
-      recommendations: singleAnalysis.recommendations as unknown as {
+      recommendations: analysisData.recommendations as unknown as {
         action: string;
         priority: string;
         impact: string;
       }[],
     };
+
     // Add review mappings if they exist
-    const reviewMappings: Record<string, unknown> = {};
-    let hasAnyMappings = false;
+    if (
+      analysisData.strengthsReviewMap ||
+      analysisData.weaknessesReviewMap ||
+      analysisData.sentimentReviewMap ||
+      analysisData.featuresReviewMap
+    ) {
+      analysisResults.reviewMappings = {};
 
-    // Check each mapping field and add it if it exists
-    if (singleAnalysis.strengthsReviewMap) {
-      reviewMappings.strengthsReviewMap =
-        singleAnalysis.strengthsReviewMap as unknown as Record<
-          string,
-          string[]
-        >;
-      hasAnyMappings = true;
+      if (analysisData.strengthsReviewMap) {
+        analysisResults.reviewMappings.strengthsReviewMap =
+          analysisData.strengthsReviewMap as unknown as Record<
+            string,
+            string[] | number[]
+          >;
+      }
+
+      if (analysisData.weaknessesReviewMap) {
+        analysisResults.reviewMappings.weaknessesReviewMap =
+          analysisData.weaknessesReviewMap as unknown as Record<
+            string,
+            string[] | number[]
+          >;
+      }
+
+      if (analysisData.sentimentReviewMap) {
+        analysisResults.reviewMappings.sentimentReviewMap =
+          analysisData.sentimentReviewMap as unknown as Record<
+            string,
+            string[] | number[]
+          >;
+      }
+
+      if (analysisData.featuresReviewMap) {
+        analysisResults.reviewMappings.featuresReviewMap =
+          analysisData.featuresReviewMap as unknown as Record<
+            string,
+            string[] | number[]
+          >;
+      }
     }
-
-    if (singleAnalysis.weaknessesReviewMap) {
-      reviewMappings.weaknessesReviewMap =
-        singleAnalysis.weaknessesReviewMap as unknown as Record<
-          string,
-          string[]
-        >;
-      hasAnyMappings = true;
-    }
-
-    if (singleAnalysis.sentimentReviewMap) {
-      reviewMappings.sentimentReviewMap =
-        singleAnalysis.sentimentReviewMap as unknown as Record<
-          string,
-          string[]
-        >;
-      hasAnyMappings = true;
-    }
-
-    if (singleAnalysis.featuresReviewMap) {
-      reviewMappings.featuresReviewMap =
-        singleAnalysis.featuresReviewMap as unknown as Record<string, string[]>;
-      hasAnyMappings = true;
-    }
-
-    // Only add the review mappings if at least one mapping exists
-    if (hasAnyMappings) {
-      analysisResults.reviewMappings = reviewMappings;
-    }
-
-    const rawAnalysis = singleAnalysis.rawAnalysis as unknown as AppAnalysis;
 
     return {
-      analysisResults,
-      analysis: rawAnalysis,
+      appInfo: app,
+      analysis: analysis,
+      analysisResults: analysisResults,
     };
   } catch (error) {
-    console.error("Error retrieving analysis results from database:", error);
+    console.error("Error retrieving analysis results:", error);
     return null;
   }
 }
 
 /**
- * Get the most recent comparison results for multiple apps from the database
- * @param appIds The app IDs to retrieve comparison for
- * @param maxAgeDays The maximum age of the comparison in days (default: 30)
- * @returns Comparison data or null if not found or expired
+ * Get comparison results from the database
  */
 export async function getComparisonResultsFromDb(
-  appIds: string[],
+  appIds: number[],
   maxAgeDays = 30,
-) {
+): Promise<{
+  comparisonData: ComparisonData;
+  appAnalyses: {
+    appInfo: App;
+    analysis: AppAnalysis;
+    analysisResults: AnalysisResultsData;
+  }[];
+} | null> {
   try {
     if (appIds.length <= 1) {
       return null; // Comparison requires at least 2 apps
     }
 
-    // Find analyses that contain all the requested app IDs
-    const analysesWithAllApps = await db.analysis.findMany({
+    // Find analyses with these apps
+    const existingAnalyses = await db.analysis.findMany({
       where: {
         createdAt: {
           gte: new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000),
@@ -529,84 +543,177 @@ export async function getComparisonResultsFromDb(
       },
       include: {
         analysisApps: true,
-        comparison: true,
-        singleAnalyses: true,
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    // Find the most recent analysis that contains a comparison
-    const analysisWithComparison = analysesWithAllApps.find(
-      (analysis) => analysis.comparison !== null,
-    );
+    // Find the most recent analysis that has comparison data
+    for (const analysis of existingAnalyses) {
+      const dbComparisonData = await db.comparisonData.findUnique({
+        where: { analysisId: analysis.id },
+      });
 
-    if (!analysisWithComparison || !analysisWithComparison.comparison) {
-      return null;
-    }
+      if (!dbComparisonData) {
+        continue;
+      }
 
-    // Convert the stored data back to the expected format
-    const comparisonData = analysisWithComparison.comparison
-      .rawComparisonData as unknown as ComparisonData;
+      // Get all apps for this comparison
+      const appAnalyses = [];
 
-    // Create AppAnalysisResult objects from single analyses
-    const appAnalyses = analysisWithComparison.singleAnalyses.map(
-      (singleAnalysis) => {
-        const appId = singleAnalysis.appId;
-        const rawAnalysis =
-          singleAnalysis.rawAnalysis as unknown as AppAnalysis;
+      for (const appId of appIds) {
+        // Get app with analysis data
+        const app = await db.app.findUnique({
+          where: { id: appId },
+          include: { analysisData: true },
+        });
+
+        if (!app || !app.analysisData) {
+          continue;
+        }
+
+        const appAnalysisData = app.analysisData;
+
+        // Create the app analysis object with direct keyFeatures mapping
+        const appAnalysis: AppAnalysis = {
+          appName: app.name,
+          strengths: appAnalysisData.strengths as unknown as {
+            description: string;
+            title: string;
+            reviewIds: number[];
+          }[],
+          weaknesses: appAnalysisData.weaknesses as unknown as {
+            description: string;
+            title: string;
+            reviewIds: number[];
+          }[],
+          // Use keyFeatures directly from DB
+          keyFeatures: appAnalysisData.keyFeatures as unknown as {
+            feature: string;
+            sentiment: "positive" | "negative" | "neutral" | "mixed";
+            description: string;
+            reviewIds: number[];
+          }[],
+          overview: {
+            strengths: [],
+            weaknesses: [],
+            opportunities: appAnalysisData.opportunities as unknown as string[],
+            threats: appAnalysisData.threats as unknown as string[],
+            marketPosition: appAnalysisData.marketPosition,
+            targetDemographic: appAnalysisData.targetDemographic,
+          },
+          sentiment: {
+            neutral: [],
+            overall: "",
+            positive: [],
+            negative: [],
+            mixed: [],
+            reviewMap: {},
+          },
+          pricingPerception: appAnalysisData.pricing as unknown as {
+            valueForMoney: number;
+            pricingComplaints: number;
+            willingness: string;
+            reviewIds: number[];
+          },
+          recommendedActions: appAnalysisData.recommendations as unknown as {
+            action: string;
+            priority: string;
+            impact: string;
+            timeframe?: string;
+            targetSegment?: string;
+          }[],
+        };
 
         // Convert the stored data to AnalysisResultsData format
         const analysisResults: AnalysisResultsData = {
           type: "analysis_results",
-          appId: appId,
-          appName: rawAnalysis.appName,
-          strengths: singleAnalysis.strengths as unknown as {
+          appId: app.id,
+          appName: app.name,
+          strengths: appAnalysisData.strengths as unknown as {
             description: string;
             title: string;
             reviewIds: number[];
           }[],
-          weaknesses: singleAnalysis.weaknesses as unknown as {
+          weaknesses: appAnalysisData.weaknesses as unknown as {
             description: string;
             title: string;
             reviewIds: number[];
           }[],
-          marketPosition: singleAnalysis.marketPosition,
-          targetDemographic: singleAnalysis.targetDemographic,
-          threats: singleAnalysis.threats as unknown as string[],
-          opportunities: singleAnalysis.opportunities as unknown as string[],
-          topFeatures: singleAnalysis.topFeatures as unknown as {
+          marketPosition: appAnalysisData.marketPosition,
+          targetDemographic: appAnalysisData.targetDemographic,
+          threats: appAnalysisData.threats as unknown as string[],
+          opportunities: appAnalysisData.opportunities as unknown as string[],
+          keyFeatures: appAnalysisData.keyFeatures as unknown as {
+            feature: string;
+            sentiment: "positive" | "negative" | "neutral" | "mixed";
             description: string;
-            title: string;
             reviewIds: number[];
           }[],
-          pricing: singleAnalysis.pricing as unknown as {
+          pricing: appAnalysisData.pricing as unknown as {
             valueForMoney: string;
-            pricingComplaints: string;
+            pricingComplaints: number;
             willingness: string;
+            reviewIds: number[];
           },
-          recommendations: singleAnalysis.recommendations as unknown as {
+          recommendations: appAnalysisData.recommendations as unknown as {
             action: string;
             priority: string;
             impact: string;
           }[],
         };
 
-        return {
-          appInfo: { appId } as App, // Minimal app info, will be filled in from app data
-          analysis: rawAnalysis,
+        appAnalyses.push({
+          appInfo: app as unknown as App,
+          analysis: appAnalysis,
           analysisResults,
-        };
-      },
-    );
+        });
+      }
 
-    return {
-      comparisonData,
-      appAnalyses,
-    };
+      const comparisonData: ComparisonData = {
+        type: "comparison_results",
+        apps: appAnalyses.map((app) => ({
+          appName: app.appInfo.name,
+          appId: app.appInfo.id,
+          rating: app.appInfo.score?.toString() ?? "0",
+          ratingCount: app.appInfo.ratings ?? 0,
+        })),
+        featureComparison:
+          dbComparisonData.featureComparison as unknown as FeatureComparisonItem[],
+        marketPositionComparison:
+          dbComparisonData.marketPositionComparison as unknown as {
+            appName: string;
+            marketPosition: string;
+          }[],
+        pricingComparison:
+          dbComparisonData.pricingComparison as unknown as PricingComparisonItem[],
+        userBaseComparison: dbComparisonData.userBaseComparison as unknown as {
+          appName: string;
+          demographics: string;
+        }[],
+        recommendationSummary:
+          dbComparisonData.recommendationSummary as unknown as string[],
+        reviews: dbComparisonData.reviews as unknown as {
+          feature: Record<string, Record<string, number[]>>;
+          pricing: Record<string, number[]>;
+          strengths: Record<string, number[]>;
+          weaknesses: Record<string, number[]>;
+        },
+      };
+
+      // If we have all the app analyses, return the comparison data
+      if (appAnalyses.length === appIds.length) {
+        return {
+          comparisonData,
+          appAnalyses,
+        };
+      }
+    }
+
+    return null;
   } catch (error) {
-    console.error("Error retrieving comparison results from database:", error);
+    console.error("Error retrieving comparison results:", error);
     return null;
   }
 }

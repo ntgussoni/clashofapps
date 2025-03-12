@@ -134,7 +134,7 @@ export default function AppCard({
           </h3>
           <p className="mt-1 text-sm text-gray-500">{appInfo.developer}</p>
           <p className="mt-1 text-xs text-gray-400">
-            {appInfo.description.slice(0, 40) + "..." || appInfo.appId}
+            {appInfo.description.slice(0, 40) + "..."}
           </p>
         </div>
         <div
@@ -154,7 +154,7 @@ export default function AppCard({
           <Star className="h-5 w-5 text-gray-400" />
           <div>
             <p className="text-sm font-medium text-gray-900">
-              {appInfo.reviews.toLocaleString()}
+              {appInfo.reviews?.toLocaleString() ?? "Unknown"}
             </p>
             <p className="text-xs text-gray-500">Reviews</p>
           </div>
@@ -164,7 +164,7 @@ export default function AppCard({
           <Download className="h-5 w-5 text-gray-400" />
           <div>
             <p className="text-sm font-medium text-gray-900">
-              {formatInstalls(appInfo.installs)}
+              {appInfo.installs ? formatInstalls(appInfo.installs) : "Unknown"}
             </p>
             <p className="text-xs text-gray-500">Installs</p>
           </div>

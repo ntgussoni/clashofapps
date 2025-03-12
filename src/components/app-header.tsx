@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { CircleUser, Menu, X } from "lucide-react";
+import { CircleUser, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -28,13 +28,16 @@ import { authClient } from "@/lib/auth-client";
 import type { auth } from "@/server/auth";
 
 import Logo from "../../public/logo.webp";
+import { cn } from "@/lib/utils";
 
 type Session = typeof auth.$Infer.Session;
 
 export function AppHeader({
   initialSession,
+  fixed = true,
 }: {
   initialSession: Session | null;
+  fixed?: boolean;
 }) {
   const { data } = authClient.useSession();
   const session = data ?? initialSession;
@@ -52,7 +55,12 @@ export function AppHeader({
   ];
 
   return (
-    <header className="fixed top-0 z-50 w-full bg-transparent text-primary">
+    <header
+      className={cn(
+        "top-0 z-50 w-full bg-transparent text-primary",
+        fixed ? "fixed" : "relative",
+      )}
+    >
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16 sm:px-6">
         <div className="flex items-center gap-1 sm:gap-2">
           <Link href="/" className="flex items-center gap-1 sm:gap-2">

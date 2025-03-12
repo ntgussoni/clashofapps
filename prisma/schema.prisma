@@ -86,8 +86,8 @@ model Verification {
 
 // Raw app data from Google Play
 model App {
-  id    Int    @id @default(autoincrement())
-  appId String @unique // Google Play app ID (e.g., com.example.app)
+  id         Int    @id @default(autoincrement())
+  appStoreId String @unique // Google Play app ID (e.g., com.example.app)
 
   // Core app metadata
   name        String
@@ -97,11 +97,11 @@ model App {
   description String @db.Text
 
   // Stats and ratings
-  score     Float
-  ratings   Int
-  reviews   Int
-  histogram Json // { "1": n, "2": n, "3": n, "4": n, "5": n }
-  installs  String
+  score     Float?
+  ratings   Int?
+  reviews   Int?
+  histogram Json? // { "1": n, "2": n, "3": n, "4": n, "5": n }
+  installs  String?
   version   String?
 
   // Complete raw data
@@ -112,9 +112,11 @@ model App {
   updatedAt   DateTime @updatedAt
 
   // Relationships
-  appReviews   AppReview[]
-  appAnalyses  AppAnalysisData[]
-  analysisApps AnalysisApp[]
+  appReviews        AppReview[]
+  analysisData      AppAnalysisData? @relation(fields: [appAnalysisDataId], references: [id])
+  analysisApps      AnalysisApp[]
+  appAnalysisDataId Int?             @unique
+  ComparisonData    ComparisonData[]
 }
 
 // Reviews for an app
@@ -136,8 +138,8 @@ model AppReview {
   rawData Json // Complete IReviewsItem as JSON
 
   // Relationships
-  appId String
-  app   App    @relation(fields: [appId], references: [appId], onDelete: Cascade)
+  appId Int
+  app   App @relation(fields: [appId], references: [id], onDelete: Cascade)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -148,9 +150,8 @@ model AppReview {
 
 // User-created analyses
 model Analysis {
-  id          Int     @id @default(autoincrement())
-  title       String?
-  description String? @db.Text
+  id   Int    @id @default(autoincrement())
+  slug String @unique // Unique slug for sharing analyses
 
   // Analysis metadata
   createdAt DateTime @default(now())
@@ -161,9 +162,8 @@ model Analysis {
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Analysis apps and results
-  analysisApps   AnalysisApp[]
-  singleAnalyses AppAnalysisData[]
-  comparison     ComparisonData?
+  analysisApps AnalysisApp[]
+  comparison   ComparisonData?
 
   // Analysis configuration
   analysisDepth String @default("detailed")
@@ -179,11 +179,9 @@ model AnalysisApp {
   // References
   analysisId Int
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  appId      String
-  app        App      @relation(fields: [appId], references: [appId], onDelete: Cascade)
-
-  // Is this the main app being analyzed?
-  isMainApp Boolean @default(false)
+  appId      Int?
+  app        App?     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  appStoreId String
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -197,12 +195,6 @@ model AnalysisApp {
 model AppAnalysisData {
   id Int @id @default(autoincrement())
 
-  // References
-  appId      String
-  app        App      @relation(fields: [appId], references: [appId], onDelete: Cascade)
-  analysisId Int
-  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-
   // Core analysis results (matches AnalysisResultsData)
   strengths         Json // String array
   weaknesses        Json // String array
@@ -210,7 +202,7 @@ model AppAnalysisData {
   marketPosition    String @db.Text
   targetDemographic String @db.Text
   threats           Json // String array
-  topFeatures       Json // Array of feature objects with sentiment/mentions
+  keyFeatures       Json // Array of feature objects matching AppAnalysis.keyFeatures structure
   pricing           Json // Pricing object with valueForMoney, complaints, willingness
   recommendations   Json // Array of recommendation objects
 
@@ -227,9 +219,7 @@ model AppAnalysisData {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([analysisId, appId])
-  @@index([appId])
-  @@index([analysisId])
+  App App?
 }
 
 // Comparison analysis results
@@ -239,19 +229,14 @@ model ComparisonData {
   // Reference to the main analysis
   analysisId Int      @unique
   analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  apps       App[]
 
-  // Comparison data fields (matches ComparisonData from route.ts)
-  apps                     Json // Array of app summary objects
   featureComparison        Json // Feature comparison data
-  strengthsComparison      Json // Strengths comparison
-  weaknessesComparison     Json // Weaknesses comparison
   marketPositionComparison Json // Market positions
   pricingComparison        Json // Pricing comparison
   userBaseComparison       Json // User demographics comparison
   recommendationSummary    Json // Array of recommendations
-
-  // Complete raw comparison data
-  rawComparisonData Json // Complete comparison data
+  reviews                  Json // Reviews comparison
 
   // Timestamps
   createdAt DateTime @default(now())

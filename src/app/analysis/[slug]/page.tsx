@@ -2,11 +2,9 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
 import { useChat } from "@ai-sdk/react";
+import { useParams } from "next/navigation";
 
-import type {
-  AnalysisResultsData,
-  ComparisonResultsData,
-} from "@/components/types";
+import type { AnalysisResultsData, ComparisonData } from "@/types";
 
 // Import components
 import AppInfoCard from "@/components/chat/AppInfoCard";
@@ -19,7 +17,6 @@ import SkeletonAppInfoCard from "@/components/chat/SkeletonAppInfoCard";
 import SkeletonAnalysisCard from "@/components/chat/SkeletonAnalysisCard";
 import SkeletonComparisonSection from "@/components/chat/SkeletonComparisonSection";
 import { type App } from "@prisma/client";
-import { useParams } from "next/navigation";
 
 // Define types for the data stream items
 type StatusDataItem = {
@@ -38,7 +35,7 @@ type DataItem =
   | StatusDataItem
   | ({ type: "app_info" } & AppInfoWithIcon)
   | ({ type: "analysis_results" } & AnalysisResultsData)
-  | ({ type: "comparison_results" } & ComparisonResultsData);
+  | ({ type: "comparison_results" } & ComparisonData);
 
 // Memoized components to prevent unnecessary re-renders
 const MemoizedAppInfoCard = memo(AppInfoCard);
@@ -46,7 +43,7 @@ const MemoizedAnalysisCard = memo(AnalysisCard);
 const MemoizedSkeletonAppInfoCard = memo(SkeletonAppInfoCard);
 const MemoizedSkeletonAnalysisCard = memo(SkeletonAnalysisCard);
 
-export default function CompareApps() {
+export default function AnalysisPage() {
   const params = useParams();
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [appInfos, setAppInfos] = useState<AppInfoWithIcon[]>([]);
@@ -54,10 +51,10 @@ export default function CompareApps() {
     [],
   );
   const [comparisonResults, setComparisonResults] =
-    useState<ComparisonResultsData | null>(null);
+    useState<ComparisonData | null>(null);
 
   // Add state to track loading apps and specific loading states
-  const [loadingAppIds, setLoadingAppIds] = useState<string[]>([]);
+  const [loadingAppIds, setLoadingAppIds] = useState<number[]>([]);
   const [loadingAppInfo, setLoadingAppInfo] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [showComparisonSkeleton, setShowComparisonSkeleton] = useState(false);
@@ -65,27 +62,28 @@ export default function CompareApps() {
   // Track processed data items to prevent duplicate processing
   const processedDataRef = useRef(new Set<string>());
 
-  // Get app IDs from URL params
-  const appIds = useMemo(() => {
-    return Array.isArray(params.appIds)
-      ? params.appIds
-      : params.appIds
-        ? [params.appIds]
-        : [];
-  }, [params.appIds]);
+  // Extract the analysis ID from the slug (the part after the last dash)
+  const analysisId = useMemo(() => {
+    if (!params.slug || typeof params.slug !== "string") return null;
+
+    const parts = params.slug.split("-");
+    return parts[parts.length - 1] ?? null;
+  }, [params.slug]);
 
   // Use the useChat hook from Vercel AI SDK
   const { handleSubmit, data } = useChat({
     api: "/api/chat",
-    initialInput: appIds.join(", "),
-    id: appIds.join("-"),
+    initialInput: analysisId ?? "",
+    body: {
+      slug: params.slug,
+    },
   });
 
   // Memoize the skeletons loading app list to prevent re-calculations
   const skeletonLoadingAppIds = useMemo(() => {
     if (!loadingAppInfo) return [];
     return loadingAppIds.filter(
-      (id) => !appInfos.some((info) => info.appId === id),
+      (id) => !appInfos.some((info) => info.id === id),
     );
   }, [loadingAppInfo, loadingAppIds, appInfos]);
 
@@ -93,7 +91,7 @@ export default function CompareApps() {
   const skeletonAnalysisAppIds = useMemo(() => {
     if (!loadingAnalysis) return [];
     return loadingAppIds.filter(
-      (id) => !analysisResults.some((result) => result.appName === id),
+      (id) => !analysisResults.some((result) => result.appId === id),
     );
   }, [loadingAnalysis, loadingAppIds, analysisResults]);
 
@@ -131,7 +129,7 @@ export default function CompareApps() {
                 const regex = /Fetching data for app\s+(.*?)\.\.\.$/;
                 const match = regex.exec(message);
                 if (match?.[1]) {
-                  const appId = match[1].trim();
+                  const appId = Number(match[1].trim());
                   setLoadingAppIds((prev) =>
                     !prev.includes(appId) ? [...prev, appId] : prev,
                   );
@@ -161,7 +159,7 @@ export default function CompareApps() {
           // Only add if not already in the array
           setAppInfos((prev) => {
             const existingIndex = prev.findIndex(
-              (info) => info.appId === appInfo.appId,
+              (info) => info.id === appInfo.id,
             );
             if (existingIndex >= 0) {
               const updated = [...prev];
@@ -174,11 +172,13 @@ export default function CompareApps() {
           break;
         }
         case "analysis_results": {
-          const result = dataItem as AnalysisResultsData & { type: string };
+          const result = dataItem as AnalysisResultsData & {
+            type: string;
+          };
           setLoadingAnalysis(false);
 
           // Remove this app from loading state
-          setLoadingAppIds((ids) => ids.filter((id) => id !== result.appName));
+          setLoadingAppIds((ids) => ids.filter((id) => id !== result.appId));
 
           // Update analysis results
           setAnalysisResults((prev) => {
@@ -196,9 +196,7 @@ export default function CompareApps() {
           break;
         }
         case "comparison_results": {
-          const comparisonItem = dataItem as ComparisonResultsData & {
-            type: string;
-          };
+          const comparisonItem = dataItem as ComparisonData;
           setComparisonResults(comparisonItem);
           setShowComparisonSkeleton(false);
           break;
@@ -221,18 +219,12 @@ export default function CompareApps() {
     data.forEach(processDataItem);
   }, [data, processDataItem]);
 
-  // Auto-submit the form when the component mounts and we have app IDs
+  // Auto-submit the form when the component mounts and we have an analysis ID
   useEffect(() => {
-    if (appIds.length > 0) {
+    if (analysisId) {
       // Set loading states based on what we're doing
       setLoadingAppInfo(true);
       setLoadingAnalysis(true);
-      setLoadingAppIds(appIds);
-
-      // Show comparison skeleton only if multiple apps
-      if (appIds.length > 1) {
-        setShowComparisonSkeleton(true);
-      }
 
       // Clear processed data items when submitting a new request
       processedDataRef.current.clear();
@@ -242,12 +234,28 @@ export default function CompareApps() {
       setAnalysisResults([]);
       setComparisonResults(null);
 
-      // Automatically submit the form with the app IDs
+      // Automatically submit the form with the analysis ID
       handleSubmit(
         new Event("submit") as unknown as React.FormEvent<HTMLFormElement>,
       );
     }
-  }, [appIds, handleSubmit]);
+  }, [analysisId, handleSubmit]);
+
+  // Show loading state or error if no analysisId
+  if (!analysisId) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Invalid Analysis URL
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            The analysis ID could not be found in the URL.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auto mx-auto flex w-full max-w-6xl flex-grow flex-col">
@@ -260,7 +268,7 @@ export default function CompareApps() {
             <div className={`flex flex-row gap-4`}>
               {/* Actual app info cards */}
               {appInfos.map((appInfo) => (
-                <MemoizedAppInfoCard key={appInfo.appId} appInfo={appInfo} />
+                <MemoizedAppInfoCard key={appInfo.id} appInfo={appInfo} />
               ))}
 
               {/* Skeleton app info cards for loading apps */}

@@ -8,9 +8,11 @@ import { MailIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
 import { AuthHeader } from "@/components/auth-header";
-import { redirect } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const referrer = searchParams.get("referrer");
   const [showAlert, setShowAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = authClient.useSession();
@@ -26,6 +28,7 @@ export default function LoginPage() {
     setIsLoading(true);
     await authClient.signIn.magicLink({
       email,
+      callbackURL: referrer ?? "/",
     });
     setShowAlert(true);
     setIsLoading(false);

@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -14,41 +15,27 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CalculationDetails } from "@/components/ui/CalculationDetails";
 import { ReviewsDialog } from "@/components/ui/ReviewsDialog";
 import { getSentimentVariant, toPercentage } from "./utils";
-import type { ComparisonResultsData, ReviewData } from "../../types";
-
-// Interface for ReviewItem to match ReviewsDialog requirements
-interface ReviewItem {
-  id: string;
-  reviewId: string;
-  userName: string;
-  userImage?: string | null;
-  date: string;
-  score: number;
-  title?: string | null;
-  text: string;
-  thumbsUp?: number | null;
-  version?: string | null;
-}
+import type { ComparisonData } from "@/types";
 
 interface FeaturesTabProps {
-  comparisonResults: ComparisonResultsData;
+  comparisonResults: ComparisonData;
 }
 
 export function FeaturesTab({ comparisonResults }: FeaturesTabProps) {
-  // Helper function to convert ReviewData to ReviewItem
-  const mapReviewsToReviewItems = (
-    reviews: ReviewData[] = [],
-  ): ReviewItem[] => {
-    return reviews.map((review) => ({
-      id: review.id,
-      reviewId: review.id, // Use id as reviewId if not available
-      userName: review.userName,
-      date: review.date,
-      score: review.score,
-      text: review.text,
-      thumbsUp: null,
-      version: null,
-    }));
+  // Get all feature review IDs for a specific feature across all apps
+  const getAllFeatureReviewIds = (featureName: string): number[] => {
+    if (!comparisonResults.reviews?.feature?.[featureName]) {
+      return [];
+    }
+
+    const allReviewIds: number[] = [];
+    const featureReviews = comparisonResults.reviews.feature[featureName];
+
+    Object.values(featureReviews).forEach((reviewIds) => {
+      allReviewIds.push(...reviewIds);
+    });
+
+    return allReviewIds;
   };
 
   return (
@@ -191,9 +178,7 @@ export function FeaturesTab({ comparisonResults }: FeaturesTabProps) {
                     <ReviewsDialog
                       appName="All Apps"
                       feature={feature.feature}
-                      reviews={mapReviewsToReviewItems(
-                        comparisonResults.reviews.feature[feature.feature],
-                      )}
+                      reviewIds={getAllFeatureReviewIds(feature.feature)}
                       title={`Reviews mentioning "${feature.feature}"`}
                     >
                       <Badge
@@ -220,9 +205,7 @@ export function FeaturesTab({ comparisonResults }: FeaturesTabProps) {
                     <ReviewsDialog
                       appName="All Apps"
                       feature={feature.feature}
-                      reviews={mapReviewsToReviewItems(
-                        comparisonResults.reviews.feature[feature.feature],
-                      )}
+                      reviewIds={getAllFeatureReviewIds(feature.feature)}
                       title={`Reviews mentioning "${feature.feature}"`}
                     >
                       <span className="cursor-pointer font-medium text-gray-800 underline decoration-dotted underline-offset-4 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400">

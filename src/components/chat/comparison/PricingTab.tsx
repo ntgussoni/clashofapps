@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -14,41 +15,30 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CalculationDetails } from "@/components/ui/CalculationDetails";
 import { ReviewsDialog } from "@/components/ui/ReviewsDialog";
 import { getSentimentVariant } from "./utils";
-import type { ComparisonResultsData, ReviewData } from "../../types";
-
-// Interface for ReviewItem to match ReviewsDialog requirements
-interface ReviewItem {
-  id: string;
-  reviewId: string;
-  userName: string;
-  userImage?: string | null;
-  date: string;
-  score: number;
-  title?: string | null;
-  text: string;
-  thumbsUp?: number | null;
-  version?: string | null;
-}
+import type { ComparisonData } from "@/types";
 
 interface PricingTabProps {
-  comparisonResults: ComparisonResultsData;
+  comparisonResults: ComparisonData;
 }
 
 export function PricingTab({ comparisonResults }: PricingTabProps) {
-  // Helper function to convert ReviewData to ReviewItem
-  const mapReviewsToReviewItems = (
-    reviews: ReviewData[] = [],
-  ): ReviewItem[] => {
-    return reviews.map((review) => ({
-      id: review.id,
-      reviewId: review.id, // Use id as reviewId if not available
-      userName: review.userName,
-      date: review.date,
-      score: review.score,
-      text: review.text,
-      thumbsUp: null,
-      version: null,
-    }));
+  // Get pricing review IDs for a specific app
+  const getPricingReviewIds = (appName: string): number[] => {
+    // Try to get from the reviews.pricing map first
+    const reviewIdsFromMap =
+      comparisonResults.reviews?.pricing?.[appName] ?? [];
+
+    // If that's empty, try to get from the pricingComparison item directly
+    if (!reviewIdsFromMap.length) {
+      const pricingItem = comparisonResults.pricingComparison.find(
+        (item) => item.appName === appName,
+      );
+      const reviewIdsFromItem = pricingItem?.reviewIds ?? [];
+
+      return reviewIdsFromItem;
+    }
+
+    return reviewIdsFromMap;
   };
 
   return (
@@ -120,9 +110,6 @@ export function PricingTab({ comparisonResults }: PricingTabProps) {
                           result: "0.2 (slightly positive)",
                         }}
                         dataSource="User reviews"
-                        onViewReviews={() => {
-                          console.log("View reviews clicked");
-                        }}
                       />
                     }
                     size="sm"
@@ -193,9 +180,7 @@ export function PricingTab({ comparisonResults }: PricingTabProps) {
                     <div className="flex flex-col gap-1">
                       <ReviewsDialog
                         appName={pricing.appName}
-                        reviews={mapReviewsToReviewItems(
-                          comparisonResults.reviews.pricing[pricing.appName],
-                        )}
+                        reviewIds={getPricingReviewIds(pricing.appName)}
                         title={`${pricing.appName} - Value for Money Reviews`}
                       >
                         <Badge
@@ -222,9 +207,7 @@ export function PricingTab({ comparisonResults }: PricingTabProps) {
                   <TableCell>
                     <ReviewsDialog
                       appName={pricing.appName}
-                      reviews={mapReviewsToReviewItems(
-                        comparisonResults.reviews.pricing[pricing.appName],
-                      )}
+                      reviewIds={getPricingReviewIds(pricing.appName)}
                       title={`${pricing.appName} - Pricing Complaint Reviews`}
                     >
                       <span className="cursor-pointer font-medium text-gray-800 underline decoration-dotted underline-offset-4 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400">

@@ -44,20 +44,22 @@ export default async function CompareLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headersList = await headers();
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: headersList,
   });
 
   if (!session) {
-    redirect("/login?referrer=/compare");
+    const referrer = headersList.get("referrer");
+    redirect(referrer ? `login?referrer=${referrer}` : "/login");
   }
 
   return (
     <>
-      <div className="container mx-auto px-4 py-6">
-        <AppHeader initialSession={session} />
+      <div className="relative flex flex-col">
+        <AppHeader initialSession={session} fixed={false} />
+        <main className="flex-1">{children}</main>
       </div>
-      <main className="flex-1">{children}</main>
       <Footer />
     </>
   );

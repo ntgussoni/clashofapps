@@ -1,6 +1,5 @@
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
-import type { AppAnalysis } from "../types";
 import { appAnalysisSchema } from "../schemas";
 import { type App, type AppReview } from "@prisma/client";
 import { z } from "zod";
@@ -53,7 +52,7 @@ const strengthWeaknessSchema = z
 const sentimentAnalysisSchema = z
   .object({
     overall: z
-      .string()
+      .enum(["positive", "negative", "neutral", "mixed"])
       .describe(
         "Overall sentiment assessment (positive/negative/neutral/mixed)",
       ),
@@ -68,15 +67,15 @@ const sentimentAnalysisSchema = z
     neutral: z
       .array(z.string())
       .default([])
-      .describe("Neutral or factual observations from reviews"),
+      .describe("Neutral or factual observations mentioned in reviews"),
     mixed: z
       .array(z.string())
       .default([])
-      .describe("Mixed or unclear sentiment from reviews"),
+      .describe("Mixed or unclear sentiment mentioned in reviews"),
     reviewMap: z
       .record(
-        z.string(), // sentiment type (positive, negative, neutral, mixed)
-        z.array(z.string()), // array of review IDs
+        z.enum(["positive", "negative", "neutral", "mixed"]), // sentiment type (positive, negative, neutral, mixed)
+        z.array(z.number()), // array of review IDs
       )
       .describe("Mapping of sentiment types to review IDs")
       .default({}),
@@ -88,7 +87,7 @@ const keyFeaturesSchema = z
     features: z
       .array(
         z.object({
-          name: z.string().describe("Name of the feature"),
+          feature: z.string().describe("Name of the feature"),
           sentiment: z
             .enum(["positive", "negative", "neutral", "mixed"])
             .describe("Overall sentiment toward this feature"),
@@ -113,19 +112,25 @@ const keyFeaturesSchema = z
  * @yields Status updates and intermediate results during analysis
  * @returns The final complete analysis result
  */
+export type AnalyzeAppReviewsUpdate = AnalysisUpdate;
+export type AnalyzeAppReviewsResult = z.infer<typeof appAnalysisSchema> &
+  Awaited<ReturnType<typeof analyzeReviews>>;
+
 export async function* analyzeAppReviews(
   appInfo: App,
   reviews: AppReview[],
   options: {
     sampleSize?: number;
     analysisDepth?: "basic" | "detailed" | "comprehensive";
+    traceId?: string;
+    userEmail?: string;
   } = {},
-): AsyncGenerator<
-  AnalysisUpdate | (AppAnalysis & Awaited<ReturnType<typeof analyzeReviews>>)
-> {
+): AsyncGenerator<AnalyzeAppReviewsUpdate | AnalyzeAppReviewsResult> {
   try {
     const sampleSize = options.sampleSize ?? 50;
     const analysisDepth = options.analysisDepth ?? "detailed";
+    const traceId = options.traceId;
+    const userEmail = options.userEmail;
 
     // Initialize analysis
     yield {
@@ -133,12 +138,6 @@ export async function* analyzeAppReviews(
       status: "initializing",
       message: `Starting analysis of ${appInfo.name}...`,
       progress: 0,
-      data: {
-        appId: appInfo.appId,
-        appName: appInfo.name,
-        appScore: appInfo.score,
-        reviewCount: appInfo.reviews,
-      },
     };
 
     // Take a representative sample of reviews
@@ -166,15 +165,6 @@ export async function* analyzeAppReviews(
       status: "processing",
       message: "Categorizing reviews by rating...",
       progress: 10,
-      data: {
-        reviewDistribution: {
-          oneStar: reviewsByRating[1]?.length ?? 0,
-          twoStar: reviewsByRating[2]?.length ?? 0,
-          threeStar: reviewsByRating[3]?.length ?? 0,
-          fourStar: reviewsByRating[4]?.length ?? 0,
-          fiveStar: reviewsByRating[5]?.length ?? 0,
-        },
-      },
     };
 
     // Ensure we have a balanced sample that includes more critical reviews
@@ -211,9 +201,6 @@ export async function* analyzeAppReviews(
       status: "processing",
       message: "Created balanced review sample...",
       progress: 20,
-      data: {
-        sampleSize: balancedSample.length,
-      },
     };
 
     // Create a prompt for review analysis
@@ -232,7 +219,7 @@ export async function* analyzeAppReviews(
       - Current Version: ${appInfo.version}
       - Last Updated: ${new Date(appInfo.updatedAt).toISOString().split("T")[0]}
       - Installs: ${appInfo.installs}
-      - Overall Rating: ${appInfo.score.toFixed(1)}/5
+      - Overall Rating: ${appInfo.score?.toFixed(1) ?? "N/A"}/5
       
       ## App Description
       ${appInfo.description.slice(0, 500)}...
@@ -252,8 +239,8 @@ export async function* analyzeAppReviews(
 
     // Format reviews for the prompt
     const formattedReviews = balancedSample.map(
-      (review, i) => `
-      Review #${i + 1} (ID: ${review.id}, Score: ${review.score}):
+      (review) => `
+      - Review (ID: ${review.id}, Score: ${review.score}):
       ${review.text}
       `,
     );
@@ -266,12 +253,12 @@ export async function* analyzeAppReviews(
       2. App Weaknesses: Pain points, bugs, and feature requests
       3. Market Position: How this app positions itself and its unique value proposition
       4. User Demographics: What kinds of users seem to be using this app
-      5. Feature Analysis: Top features mentioned and sentiment around them
-      6. Pricing Analysis: 
+      5. Pricing Analysis: 
          - Value for Money: Do users feel they're getting value?
          - Pricing complaints: Are there specific issues with pricing?
          - Willingness to Pay: For what features would users pay more?
-      7. Strategic Recommendations: What should a competing app do to outperform this one?
+         - Review IDs: Include the IDs of reviews that mention pricing
+      6. Strategic Recommendations: What should a competing app do to outperform this one?
       
       Be comprehensive, insightful and brutally honest. Your analysis should have the depth of ${analysisDepth} analysis.
     `;
@@ -294,6 +281,15 @@ export async function* analyzeAppReviews(
       prompt: completePrompt,
       experimental_telemetry: {
         isEnabled: true,
+        functionId: "analyze-app-reviews",
+        metadata: {
+          analysisType: "structured-analysis",
+          promptType: "review-analysis",
+          ...(traceId ? { langfuseTraceId: traceId } : {}),
+          langfuseUpdateParent: false,
+          ...(userEmail ? { userId: userEmail } : {}),
+          appId: appInfo.id,
+        },
       },
     });
 
@@ -319,26 +315,41 @@ export async function* analyzeAppReviews(
       progress: 95,
     };
 
-    // Replace strength/weakness extraction with AI processing
-    const aiAnalysis = await analyzeReviews(balancedSample);
+    // Run analyses in parallel for better performance
+    const [strengthsAndWeaknesses, sentiment, keyFeatures] = await Promise.all([
+      extractStrengthsAndWeaknesses(balancedSample, { traceId, userEmail }),
+      analyzeSentiment(balancedSample, { traceId, userEmail }),
+      extractKeyFeatures(balancedSample, { traceId, userEmail }),
+    ]);
+
     // Return the complete analysis as the final yield value
     yield {
       ...analysis,
-      ...aiAnalysis,
+      strengths: strengthsAndWeaknesses.strengths,
+      weaknesses: strengthsAndWeaknesses.weaknesses,
+      sentiment: sentiment.sentiment,
+      keyFeatures: keyFeatures,
     };
-  } catch (error: unknown) {
+  } catch (error) {
     // If there's an error during processing, yield the error and throw
+    console.error(
+      `Error analyzing reviews of ${appInfo.name} at ${appInfo.id}: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    );
     yield {
       type: "error",
-      message: `Error analyzing reviews: ${error instanceof Error ? error.message : "Unknown error"}`,
-      data: { error },
+      message: `Error analyzing reviews`,
     };
     throw error;
   }
 }
 
 // Main review analysis function
-export async function analyzeReviews(reviews: AppReview[]) {
+export async function analyzeReviews(
+  reviews: AppReview[],
+  options?: { traceId?: string; userEmail?: string },
+) {
   const filteredReviews = reviews.filter(
     (review) => review.text && review.text.length > 10,
   );
@@ -355,27 +366,30 @@ export async function analyzeReviews(reviews: AppReview[]) {
         mixed: [],
         reviewMap: {},
       },
-      keyFeatures: { features: [] },
+      keyFeatures: [],
     };
   }
 
   // Run analyses in parallel for better performance
   const [strengthsAndWeaknesses, sentiment, keyFeatures] = await Promise.all([
-    extractStrengthsAndWeaknesses(filteredReviews),
-    analyzeSentiment(filteredReviews),
-    extractKeyFeatures(filteredReviews),
+    extractStrengthsAndWeaknesses(filteredReviews, options),
+    analyzeSentiment(filteredReviews, options),
+    extractKeyFeatures(filteredReviews, options),
   ]);
 
   return {
     strengths: strengthsAndWeaknesses.strengths,
     weaknesses: strengthsAndWeaknesses.weaknesses,
-    sentiment,
+    sentiment: sentiment.sentiment,
     keyFeatures,
   };
 }
 
 // Extract strengths and weaknesses using AI
-export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
+export async function extractStrengthsAndWeaknesses(
+  reviews: AppReview[],
+  options?: { traceId?: string; userEmail?: string },
+) {
   if (reviews.length === 0) {
     return { strengths: [], weaknesses: [] };
   }
@@ -404,6 +418,14 @@ export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
     schema: strengthWeaknessSchema,
     experimental_telemetry: {
       isEnabled: true,
+      functionId: "extract-strengths-weaknesses",
+      metadata: {
+        analysisType: "sentiment-analysis",
+        reviewCount: reviews.length,
+        ...(options?.traceId ? { langfuseTraceId: options.traceId } : {}),
+        langfuseUpdateParent: false,
+        ...(options?.userEmail ? { userId: options.userEmail } : {}),
+      },
     },
   });
 
@@ -411,19 +433,24 @@ export async function extractStrengthsAndWeaknesses(reviews: AppReview[]) {
 }
 
 // Analyze sentiment using AI
-export async function analyzeSentiment(reviews: AppReview[]) {
+export async function analyzeSentiment(
+  reviews: AppReview[],
+  options?: { traceId?: string; userEmail?: string },
+) {
   if (reviews.length === 0) {
     return {
-      overall: "neutral",
-      positive: [],
-      negative: [],
-      neutral: [],
-      mixed: [],
-      reviewMap: {},
+      sentiment: {
+        overall: "neutral",
+        positive: [],
+        negative: [],
+        neutral: [],
+        mixed: [],
+        reviewMap: {},
+      },
     };
   }
 
-  // Create a structured format that includes both review content and ID
+  // Include the review ID along with its content
   const reviewData = reviews.map((r) => ({
     id: r.id,
     name: r.text,
@@ -433,13 +460,13 @@ export async function analyzeSentiment(reviews: AppReview[]) {
   const result = await generateObject({
     model,
     prompt: `
-      Analyze the sentiment of these app reviews:
+      Analyze these app reviews and determine the overall sentiment:
       ${JSON.stringify(reviewData)}
       
       Provide:
-      1. An overall sentiment assessment (positive, negative, or neutral, or mixed)
-      2. Key positive themes mentioned in the reviews
-      3. Key negative themes mentioned in the reviews
+      1. An overall sentiment assessment (positive/negative/neutral/mixed)
+      2. Key positive themes mentioned in reviews
+      3. Key negative themes mentioned in reviews
       4. Any neutral or factual observations made by users
       5. Group the review IDs by sentiment category (positive, negative, neutral, mixed)
       
@@ -449,16 +476,27 @@ export async function analyzeSentiment(reviews: AppReview[]) {
     schema: sentimentAnalysisSchema,
     experimental_telemetry: {
       isEnabled: true,
+      functionId: "analyze-app-reviews",
+      metadata: {
+        analysisType: "structured-analysis",
+        promptType: "review-analysis",
+        ...(options?.traceId ? { langfuseTraceId: options.traceId } : {}),
+        langfuseUpdateParent: false,
+        ...(options?.userEmail ? { userId: options.userEmail } : {}),
+      },
     },
   });
 
-  return result.object;
+  return { sentiment: result.object };
 }
 
 // Extract key features using AI
-export async function extractKeyFeatures(reviews: AppReview[]) {
+export async function extractKeyFeatures(
+  reviews: AppReview[],
+  options?: { traceId?: string; userEmail?: string },
+) {
   if (reviews.length === 0) {
-    return { features: [] };
+    return [];
   }
 
   // Include the review ID along with its content
@@ -488,10 +526,18 @@ export async function extractKeyFeatures(reviews: AppReview[]) {
     schema: keyFeaturesSchema,
     experimental_telemetry: {
       isEnabled: true,
+      functionId: "extract-key-features",
+      metadata: {
+        analysisType: "feature-analysis",
+        reviewCount: reviews.length,
+        ...(options?.traceId ? { langfuseTraceId: options.traceId } : {}),
+        langfuseUpdateParent: false,
+        ...(options?.userEmail ? { userId: options.userEmail } : {}),
+      },
     },
   });
 
-  return result.object;
+  return result.object.features;
 }
 
 // Helper function for any specialized text processing if needed

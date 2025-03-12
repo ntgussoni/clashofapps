@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -14,21 +15,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  StarIcon,
-  DollarSignIcon,
-  BarChart3Icon,
-  TrendingUpIcon,
-} from "lucide-react";
+import { StarIcon, DollarSignIcon, BarChart3Icon } from "lucide-react";
 import { KeyMetricsTab } from "./comparison/KeyMetricsTab";
-import { StrengthsWeaknessesTab } from "./comparison/StrengthsWeaknessesTab";
 import { FeaturesTab } from "./comparison/FeaturesTab";
 import { PricingTab } from "./comparison/PricingTab";
 import { RecommendationsSection } from "./comparison/RecommendationsSection";
-import type { ComparisonResultsData } from "../types";
+import type { ComparisonData } from "@/types";
 
 interface ComparisonSectionProps {
-  comparisonResults: ComparisonResultsData;
+  comparisonResults: ComparisonData;
 }
 
 export default function ComparisonSection({
@@ -68,20 +63,13 @@ export default function ComparisonSection({
 
         <CardContent className="p-6">
           <Tabs defaultValue="metrics" className="w-full">
-            <TabsList className="mb-6 grid w-full grid-cols-4 rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <TabsList className="mb-6 grid w-full grid-cols-3 rounded-lg border border-gray-200 bg-gray-50 p-1">
               <TabsTrigger
                 value="metrics"
                 className="flex items-center gap-1 rounded-md"
               >
                 <BarChart3Icon className="h-4 w-4 text-blue-500" />
                 Key Metrics
-              </TabsTrigger>
-              <TabsTrigger
-                value="strengths-weaknesses"
-                className="flex items-center gap-1 rounded-md"
-              >
-                <TrendingUpIcon className="h-4 w-4 text-purple-500" />
-                Strengths & Weaknesses
               </TabsTrigger>
               <TabsTrigger
                 value="features"
@@ -104,11 +92,6 @@ export default function ComparisonSection({
               <KeyMetricsTab comparisonResults={comparisonResults} />
             </TabsContent>
 
-            {/* Strengths & Weaknesses Tab */}
-            <TabsContent value="strengths-weaknesses" className="space-y-4">
-              <StrengthsWeaknessesTab comparisonResults={comparisonResults} />
-            </TabsContent>
-
             {/* Features Tab */}
             <TabsContent value="features" className="space-y-4">
               <FeaturesTab comparisonResults={comparisonResults} />
@@ -120,8 +103,10 @@ export default function ComparisonSection({
             </TabsContent>
           </Tabs>
 
-          {/* Recommendations Summary */}
-          <RecommendationsSection comparisonResults={comparisonResults} />
+          {/* Recommendations */}
+          <RecommendationsSection
+            recommendations={comparisonResults.recommendationSummary}
+          />
         </CardContent>
       </Card>
     </motion.div>

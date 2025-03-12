@@ -2,13 +2,13 @@ import type {
   AppAnalysisResult,
   DataStream,
   AnalysisResultsData,
-} from "./types";
+} from "@/types";
 import { safeSerialize, sendStatus } from "./utils";
 import { fetchAppData } from "@/server/review-analyzer/services/dataFetcher";
 import {
   analyzeAppReviews,
-  type analyzeReviews,
   type AnalysisUpdate,
+  type AnalyzeAppReviewsResult,
 } from "@/server/review-analyzer/services/reviewAnalyzer";
 import {
   getAppFromDb,
@@ -16,65 +16,31 @@ import {
   storeAnalysisResults,
   getAnalysisResultsFromDb,
 } from "@/server/review-analyzer/services/dbService";
-import type { AppAnalysis } from "@/server/review-analyzer/types";
-import { db } from "@/server/db";
-
-// Check if user has access to a specific app
-async function checkUserAppAccess(
-  userId: string,
-  appId: string,
-): Promise<boolean> {
-  try {
-    // Check if this user has any analyses that include this app
-    const userAnalysis = await db.analysis.findFirst({
-      where: {
-        userId: userId,
-        analysisApps: {
-          some: {
-            appId: appId,
-          },
-        },
-      },
-    });
-
-    return !!userAnalysis;
-  } catch (error) {
-    console.error("Error checking user app access:", error);
-    return false;
-  }
-}
 
 // Process a single app analysis
 export async function processAppAnalysis(
-  appId: string,
+  appStoreId: string,
   dataStream: DataStream,
   userId: string,
+  options?: { traceId?: string; userEmail?: string },
 ): Promise<AppAnalysisResult | null> {
   try {
-    // Check if user has access to this app
-    const hasAccess = await checkUserAppAccess(userId, appId);
-
-    if (!hasAccess) {
-      sendStatus(
-        dataStream,
-        "error",
-        `Access denied: You don't have permission to analyze app ${appId}`,
-      );
-      return null;
-    }
-
     // Update status for this specific app
-    sendStatus(dataStream, "analyzing", `Fetching data for app ${appId}...`);
+    sendStatus(
+      dataStream,
+      "analyzing",
+      `Fetching data for app ${appStoreId}...`,
+    );
 
     // Check if we have the app data in the database
-    let result = await getAppFromDb(appId);
+    let result = await getAppFromDb(appStoreId);
 
     if (!result) {
       // If not in DB or data is stale, fetch from Google Play
-      const { appInfo, reviews } = await fetchAppData(appId);
+      const { appInfo, reviews } = await fetchAppData(appStoreId);
       // Store the app data in the database
       await storeAppData(appInfo, reviews);
-      result = await getAppFromDb(appId);
+      result = await getAppFromDb(appStoreId);
     }
 
     if (!result) {
@@ -92,7 +58,7 @@ export async function processAppAnalysis(
     dataStream.writeData(safeSerialize(appInfoSummary));
 
     // Check if we have existing analysis results in the database
-    const existingAnalysis = await getAnalysisResultsFromDb(appId);
+    const existingAnalysis = await getAnalysisResultsFromDb(appInfo.id);
 
     if (existingAnalysis) {
       // If we have existing analysis, use it
@@ -101,9 +67,6 @@ export async function processAppAnalysis(
         "processing",
         `Retrieved existing analysis for ${appInfo.name}...`,
       );
-
-      // Fill in the app name in the analysis results
-      existingAnalysis.analysisResults.appName = appInfo.name;
 
       // Send the existing analysis results to the client
       dataStream.writeData(safeSerialize(existingAnalysis.analysisResults));
@@ -124,12 +87,15 @@ export async function processAppAnalysis(
     );
 
     // Use the new generator function for analysis
-    const analysisGenerator = analyzeAppReviews(appInfo, reviews);
+    const analysisGenerator = analyzeAppReviews(appInfo, reviews, {
+      sampleSize: 50,
+      analysisDepth: "detailed",
+      traceId: options?.traceId,
+      userEmail: options?.userEmail,
+    });
 
     // Process each update from the generator
-    let analysis:
-      | (AppAnalysis & Awaited<ReturnType<typeof analyzeReviews>>)
-      | null = null;
+    let analysis: AnalyzeAppReviewsResult | null = null;
 
     for await (const update of analysisGenerator) {
       // Check if the update is a status/error update or the final analysis result
@@ -148,8 +114,7 @@ export async function processAppAnalysis(
         );
       } else {
         // It's the final analysis
-        analysis = update as AppAnalysis &
-          Awaited<ReturnType<typeof analyzeReviews>>;
+        analysis = update as AnalyzeAppReviewsResult;
       }
     }
 
@@ -160,7 +125,7 @@ export async function processAppAnalysis(
     // Send analysis results as structured data
     const analysisResults: AnalysisResultsData = {
       type: "analysis_results",
-      appId: appInfo.appId,
+      appId: appInfo.id,
       appName: appInfo.name,
       strengths: analysis.strengths,
       weaknesses: analysis.weaknesses,
@@ -168,22 +133,28 @@ export async function processAppAnalysis(
       threats: analysis.overview.threats,
       marketPosition: analysis.overview.marketPosition,
       targetDemographic: analysis.overview.targetDemographic,
-      topFeatures: analysis.keyFeatures.features.map((f) => ({
-        description: f.description,
-        title: f.name,
-        reviewIds: f.reviewIds,
-      })),
+      keyFeatures: analysis.keyFeatures,
       pricing: {
         valueForMoney: analysis.pricingPerception.valueForMoney.toFixed(2),
-        pricingComplaints:
+        pricingComplaints: Number(
           analysis.pricingPerception.pricingComplaints.toFixed(1),
+        ),
         willingness: analysis.pricingPerception.willingness,
+        reviewIds: analysis.pricingPerception.reviewIds || [],
       },
-      recommendations: analysis.recommendedActions.map((r) => ({
-        action: r.action,
-        priority: r.priority,
-        impact: r.impact,
-      })),
+      recommendations: analysis.recommendedActions.map(
+        (r: {
+          action: string;
+          priority: string;
+          impact: string;
+          timeframe?: string;
+          targetSegment?: string;
+        }) => ({
+          action: r.action,
+          priority: r.priority,
+          impact: r.impact,
+        }),
+      ),
     };
 
     // Extract review ID mappings if they exist
@@ -194,12 +165,12 @@ export async function processAppAnalysis(
       rawData.strengths ||
       rawData.weaknesses ||
       rawData.sentiment?.reviewMap ||
-      rawData.keyFeatures?.features
+      rawData.keyFeatures
     ) {
-      const strengthsReviewMap: Record<string, number[]> = {};
-      const weaknessesReviewMap: Record<string, number[]> = {};
-      let sentimentReviewMap = {};
-      const featuresReviewMap: Record<string, number[]> = {};
+      const strengthsReviewMap: Record<string, string[] | number[]> = {};
+      const weaknessesReviewMap: Record<string, string[] | number[]> = {};
+      let sentimentReviewMap: Record<string, string[] | number[]> = {};
+      const featuresReviewMap: Record<string, string[] | number[]> = {};
 
       // Process strengths
       if (rawData.strengths) {
@@ -225,10 +196,10 @@ export async function processAppAnalysis(
       }
 
       // Process features
-      if (rawData.keyFeatures?.features) {
-        rawData.keyFeatures.features.forEach((feature) => {
-          if (feature.name && feature.reviewIds) {
-            featuresReviewMap[feature.name] = feature.reviewIds;
+      if (rawData.keyFeatures) {
+        rawData.keyFeatures.forEach((feature) => {
+          if (feature.feature && feature.reviewIds) {
+            featuresReviewMap[feature.feature] = feature.reviewIds;
           }
         });
       }
@@ -257,11 +228,13 @@ export async function processAppAnalysis(
       analysisResults,
     };
   } catch (error) {
-    console.error(`Error analyzing app ${appId}:`, error);
+    console.error(`Error processing app analysis for ${appStoreId}:`, error);
     sendStatus(
       dataStream,
       "error",
-      `Failed to analyze app ${appId}: ${(error as Error).message}`,
+      `Error analyzing app: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
     return null;
   }

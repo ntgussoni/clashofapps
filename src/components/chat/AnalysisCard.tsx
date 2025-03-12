@@ -4,28 +4,24 @@ import {
   CheckCircle,
   Target,
   DollarSign,
-  Star,
   Users,
-  CheckCircle2Icon,
   AlertCircle,
   LightbulbIcon,
   Info,
+  ThumbsUp,
+  ThumbsDown,
+  HelpCircle,
+  Minus,
+  MessageSquare,
+  ListChecks,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-import type { AnalysisResultsData } from "@/components/types";
+import type { AnalysisResultsData } from "@/types";
 import { motion } from "framer-motion";
 import { Separator } from "../ui/separator";
-import { api } from "@/trpc/react";
+import { ReviewsDialog } from "@/components/ui/ReviewsDialog";
 
 interface AnalysisCardProps {
   result: AnalysisResultsData;
@@ -42,32 +38,43 @@ export default function AnalysisCard({
     return value.toFixed(2);
   };
 
-  // State for storing review dialog data
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [selectedReviewIds, setSelectedReviewIds] = useState<number[]>([]);
-  const [dialogTitle, setDialogTitle] = useState<string>("");
-  const [dialogDescription, setDialogDescription] = useState<string>("");
+  // Create a ref for the dialog trigger
+  const reviewDialogTriggerRef = React.useRef<HTMLButtonElement>(null);
 
-  // Fetch reviews using TRPC
-  const { data: reviews, isLoading } = api.reviews.getReviewsByIds.useQuery(
-    { reviewIds: selectedReviewIds },
-    { enabled: reviewDialogOpen && selectedReviewIds.length > 0 },
-  );
+  // Simplified dialog state
+  const [dialogState, setDialogState] = useState({
+    title: "",
+    description: "",
+    reviewIds: [] as number[],
+    feature: undefined as string | undefined,
+    isOpen: false,
+  });
+
+  // Check if review mappings exist
+  const hasReviewMappings = result.reviewMappings !== undefined;
 
   // Function to handle showing reviews
   const handleShowReviews = (
     title: string,
     description: string,
     reviewIds: number[] = [],
+    feature?: string,
   ) => {
-    setDialogTitle(title);
-    setDialogDescription(description);
-    setSelectedReviewIds(reviewIds);
-    setReviewDialogOpen(true);
+    setDialogState({
+      title,
+      description,
+      reviewIds,
+      feature,
+      isOpen: true,
+    });
+
+    // Delay trigger click to ensure state is updated
+    setTimeout(() => {
+      if (reviewDialogTriggerRef.current) {
+        reviewDialogTriggerRef.current.click();
+      }
+    }, 50);
   };
-  console.log(result);
-  // Check if review mappings exist
-  const hasReviewMappings = result.reviewMappings !== undefined;
 
   // Helper to get review IDs for a specific strength
   const getStrengthReviewIds = (strength: {
@@ -76,7 +83,7 @@ export default function AnalysisCard({
     reviewIds: number[];
   }): number[] => {
     if (!hasReviewMappings) return [];
-    return strength.reviewIds;
+    return strength.reviewIds || [];
   };
 
   // Helper to get review IDs for a specific weakness
@@ -86,17 +93,9 @@ export default function AnalysisCard({
     reviewIds: number[];
   }): number[] => {
     if (!hasReviewMappings) return [];
-    return weakness.reviewIds;
+    return weakness.reviewIds || [];
   };
 
-  const getFeatureReviewIds = (feature: {
-    description: string;
-    title: string;
-    reviewIds: number[];
-  }): number[] => {
-    if (!hasReviewMappings) return [];
-    return feature.reviewIds;
-  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -272,48 +271,98 @@ export default function AnalysisCard({
             <TabsContent value="features">
               <div>
                 <h4 className="mb-3 flex items-center text-sm font-medium text-gray-700">
-                  <Star className="mr-2 h-4 w-4 text-gray-400" />
-                  Top Features
+                  <ListChecks className="mr-2 h-4 w-4 text-gray-400" />
+                  Key Features
                 </h4>
-                <ul className="space-y-2">
-                  {result.topFeatures.map((feature, index) => {
-                    const reviewIds = getFeatureReviewIds(feature);
-                    const hasReviews = reviewIds?.length > 0;
+                <div className="space-y-3">
+                  <ul className="space-y-1">
+                    {result.keyFeatures.map((feature, index: number) => {
+                      const reviewIds = feature.reviewIds || [];
+                      const hasReviews = reviewIds.length > 0;
 
-                    return (
-                      <li
-                        key={index}
-                        className="flex items-start justify-between text-sm"
-                      >
-                        <div className="flex items-start">
-                          <CheckCircle
-                            className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
-                          />
-                          <span className="text-gray-700">{feature.title}</span>
-                        </div>
+                      // Get sentiment color and icon
+                      let sentimentColor = "text-gray-400";
+                      let SentimentIcon = Info;
 
-                        {hasReviews && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-2 h-6 px-2 text-xs"
-                            onClick={() =>
-                              handleShowReviews(
-                                `Supporting Reviews for: ${feature.title}`,
-                                feature.description,
-                                reviewIds,
-                              )
-                            }
-                          >
-                            <Info className="mr-1 h-3 w-3" />
-                            {reviewIds.length}{" "}
-                            {reviewIds.length === 1 ? "review" : "reviews"}
-                          </Button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                      switch (feature.sentiment) {
+                        case "positive":
+                          sentimentColor = "text-green-500";
+                          SentimentIcon = ThumbsUp;
+                          break;
+                        case "negative":
+                          sentimentColor = "text-red-500";
+                          SentimentIcon = ThumbsDown;
+                          break;
+                        case "mixed":
+                          sentimentColor = "text-amber-500";
+                          SentimentIcon = HelpCircle;
+                          break;
+                        case "neutral":
+                        default:
+                          sentimentColor = "text-gray-400";
+                          SentimentIcon = Minus;
+                          break;
+                      }
+
+                      return (
+                        <li
+                          key={index}
+                          className="flex items-start justify-between rounded-lg border border-gray-100 bg-gray-50/50 p-3"
+                        >
+                          <div className="flex items-start">
+                            <CheckCircle
+                              className={`mr-2 mt-0.5 h-4 w-4 ${accentColor === "rose" ? "text-rose-500" : "text-blue-500"}`}
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-gray-700">
+                                {feature.feature}
+                              </span>
+                              {feature.description && (
+                                <span className="mt-1 text-xs text-gray-500">
+                                  {feature.description}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center">
+                            <div className="mr-3 flex items-center">
+                              <SentimentIcon
+                                className={`h-4 w-4 ${sentimentColor}`}
+                              />
+                              <span
+                                className={`ml-1 text-xs ${sentimentColor}`}
+                              >
+                                {feature.sentiment.charAt(0).toUpperCase() +
+                                  feature.sentiment.slice(1)}
+                              </span>
+                            </div>
+
+                            {hasReviews && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={() =>
+                                  handleShowReviews(
+                                    `Supporting Reviews for: ${feature.feature}`,
+                                    feature.feature,
+                                    reviewIds,
+                                    feature.feature,
+                                  )
+                                }
+                              >
+                                <MessageSquare className="mr-1 h-3 w-3" />
+                                {reviewIds.length}{" "}
+                                {reviewIds.length === 1 ? "review" : "reviews"}
+                              </Button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -400,91 +449,23 @@ export default function AnalysisCard({
         </div>
       </div>
 
-      {/* Review Details Dialog */}
-      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <p className="text-sm text-gray-500">Loading reviews...</p>
-                </div>
-              ) : !reviews || reviews.length === 0 ? (
-                <p className="pt-2 text-sm text-gray-500">
-                  No review data available.
-                </p>
-              ) : (
-                <div className="mt-4 space-y-4">
-                  <p className="text-sm text-gray-700">{dialogDescription}</p>
-                  {reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="rounded-lg border border-gray-200 p-4"
-                    >
-                      <div className="mb-2 flex items-end justify-start">
-                        {/* <div className="flex items-center">
-                          {review.userImage && (
-                            <img
-                              src={review.userImage}
-                              alt={review.userName}
-                              className="mr-2 h-6 w-6 rounded-full"
-                            />
-                          )}
-                          <h3 className="text-sm font-medium text-gray-900">
-                            {review.userName}
-                          </h3>
-                        </div> */}
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-3 w-3 ${
-                                  i < review.score
-                                    ? "fill-amber-400 text-amber-400"
-                                    : "fill-gray-200 text-gray-200"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {new Date(review.date).toLocaleDateString()}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {review.title && (
-                        <p className="mb-1 text-sm font-medium">
-                          {review.title}
-                        </p>
-                      )}
-
-                      <p className="text-sm text-gray-700">{review.text}</p>
-
-                      <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                        {review.version && (
-                          <span>Version: {review.version}</span>
-                        )}
-                        {review.thumbsUp !== undefined &&
-                          review.thumbsUp !== null &&
-                          review.thumbsUp > 0 && (
-                            <span className="flex items-center">
-                              <CheckCircle2Icon className="mr-1 h-3 w-3" />
-                              {review.thumbsUp}{" "}
-                              {review.thumbsUp === 1 ? "person" : "people"}{" "}
-                              found this helpful
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      {/* Updated ReviewsDialog with new props */}
+      <ReviewsDialog
+        appName={result.appName}
+        feature={dialogState.feature}
+        reviewIds={dialogState.reviewIds}
+        title={dialogState.title}
+        description={dialogState.description}
+      >
+        <button
+          ref={reviewDialogTriggerRef}
+          className="hidden"
+          type="button"
+          aria-hidden="true"
+        >
+          Trigger
+        </button>
+      </ReviewsDialog>
     </motion.div>
   );
 }

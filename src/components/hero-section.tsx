@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { extractAppIds } from "@/utils/slug";
 
 export function HeroSection() {
   const router = useRouter();
   const [links, setLinks] = useState<string[]>([""]);
   const [isClient, setIsClient] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // This ensures animations only run after component mounts
   useEffect(() => {
@@ -19,47 +21,47 @@ export function HeroSection() {
 
   const handleAddLink = () => {
     setLinks([...links, ""]);
+    // Clear error when adding a new link
+    setError(null);
   };
 
   const handleLinkChange = (index: number, value: string) => {
     const newLinks = [...links];
     newLinks[index] = value;
     setLinks(newLinks);
+    // Clear error when changing links
+    setError(null);
   };
 
   const handleCompare = () => {
+    // Reset error state
+    setError(null);
+
     const validLinks = links.filter((link) => link.trim() !== "");
 
     if (validLinks.length === 0) return;
 
-    const appIds = links.map((link) => {
-      if (!link.includes("/") && !link.includes("https")) {
-        return link;
-      }
+    // Extract app IDs from the links
+    const appIds = extractAppIds(validLinks);
 
-      try {
-        const url = new URL(link);
-        const pathParts = url.pathname.split("/");
+    // Check for duplicate app IDs
+    const uniqueAppIds = new Set(appIds);
 
-        if (url.hostname === "play.google.com") {
-          const params = new URLSearchParams(url.search);
-          const appId = params.get("id");
-          if (appId) return appId;
-        }
+    if (uniqueAppIds.size !== appIds.length) {
+      // Find the duplicate app IDs for more helpful error message
+      const duplicates = appIds.filter(
+        (id, index) => appIds.indexOf(id) !== index,
+      );
+      const uniqueDuplicates = [...new Set(duplicates)];
 
-        for (let i = 0; i < pathParts.length; i++) {
-          if (pathParts[i] === "id" && i + 1 < pathParts.length) {
-            return pathParts[i + 1];
-          }
-        }
-      } catch (e) {
-        console.error("Error parsing URL:", e);
-      }
+      setError(
+        `Duplicate app${uniqueDuplicates.length > 1 ? "s" : ""} detected: ${uniqueDuplicates.join(", ")}. Please use unique apps for comparison.`,
+      );
+      return;
+    }
 
-      return link;
-    });
-
-    router.push(`/compare/${appIds.join("/")}`);
+    // Navigate to the analysis create route with app IDs
+    router.push(`/analysis/create/${appIds.join("/")}`);
   };
 
   return (
@@ -75,7 +77,10 @@ export function HeroSection() {
           aria-hidden="true"
           preload="auto"
         >
-          <source src="/video.webm" type="video/webm" />
+          <source
+            src="https://cdn.pixabay.com/video/2016/09/13/5192-183786490_large.mp4"
+            type="video/webm"
+          />
         </video>
         <div className="z-10 h-full w-full before:absolute before:inset-0 before:size-full before:bg-[radial-gradient(circle_at_center,_rgba(10,10,10,.3)_15%,_rgba(10,10,10,1)_45%)] before:content-['']" />
       </div>
@@ -125,7 +130,7 @@ export function HeroSection() {
                 transition={{ duration: 0.7, ease: "easeOut" }}
               >
                 <motion.span
-                  className="block text-white"
+                  className="block text-white shadow-white drop-shadow-lg"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
@@ -133,7 +138,7 @@ export function HeroSection() {
                   Build What Users Already Want
                 </motion.span>
                 <motion.span
-                  className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text pt-2 text-transparent sm:pt-4"
+                  className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text pt-2 text-transparent drop-shadow-lg sm:pt-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.5 }}
@@ -184,6 +189,18 @@ export function HeroSection() {
                     className="h-10 border-gray-700 bg-white/10 text-white backdrop-blur-md placeholder:text-gray-400 focus:border-cyan-400 focus:ring-cyan-400/20 sm:h-12"
                   />
                 ))}
+
+                {/* Display error message if it exists */}
+                {error && (
+                  <motion.div
+                    className="mt-2 text-sm font-medium text-red-400"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {error}
+                  </motion.div>
+                )}
 
                 <motion.div
                   className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4"

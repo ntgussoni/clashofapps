@@ -11,14 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CalculationDetails } from "@/components/ui/CalculationDetails";
 import { LightbulbIcon } from "lucide-react";
-import type { ComparisonResultsData } from "../../types";
 
 interface RecommendationsSectionProps {
-  comparisonResults: ComparisonResultsData;
+  recommendations: string[];
 }
 
 export function RecommendationsSection({
-  comparisonResults,
+  recommendations,
 }: RecommendationsSectionProps) {
   return (
     <Card className="mt-6 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
@@ -62,7 +61,7 @@ export function RecommendationsSection({
       </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-4">
-          {comparisonResults.recommendationSummary.map((rec, i) => {
+          {recommendations.map((rec, i) => {
             // Extract step number if it exists
             const stepRegex = /^STEP (\d+):/;
             const stepMatch = stepRegex.exec(rec);
@@ -96,8 +95,7 @@ export function RecommendationsSection({
       <CardFooter className="border-t bg-amber-50/50 px-6 py-4 dark:border-amber-900/50 dark:bg-amber-900/10">
         <div className="flex w-full items-center justify-between">
           <div className="text-sm italic text-amber-700 dark:text-amber-400/90">
-            Recommendations based on data from {comparisonResults.apps.length}{" "}
-            analyzed apps
+            Recommendations based on data from analyzed apps
           </div>
           <Badge variant="outline" className="rounded-full text-xs">
             Priority Order

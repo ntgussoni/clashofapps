@@ -11,11 +11,11 @@ import { Progress } from "@/components/ui/progress";
 import { StarIcon, BarChart3Icon } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CalculationDetails } from "@/components/ui/CalculationDetails";
-import { getRatingColorClass, formatNumber } from "./utils";
-import type { ComparisonResultsData } from "../../types";
+import { getRatingColorClass } from "./utils";
+import type { ComparisonData } from "@/types";
 
 interface KeyMetricsTabProps {
-  comparisonResults: ComparisonResultsData;
+  comparisonResults: ComparisonData;
 }
 
 export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
@@ -107,17 +107,15 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
                       <StarIcon className="mr-1 h-4 w-4 text-amber-500" />
                       <span
                         className={`font-medium ${getRatingColorClass(
-                          typeof app.rating === "string"
-                            ? Number(app.rating)
-                            : app.rating,
+                          Number(app.rating),
                         )}`}
                       >
-                        {formatNumber(app.rating)}
+                        {Number(app.rating).toFixed(1)}
                       </span>
                     </div>
                     <div className="mt-1 w-full">
                       <Progress
-                        value={Number(app.rating) * 20}
+                        value={Math.round((Number(app.rating) / 5) * 100)}
                         className="h-1.5"
                       />
                     </div>

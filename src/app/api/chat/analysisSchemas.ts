@@ -8,7 +8,7 @@ import { z } from "zod";
 const reviewIdsField = z
   .array(z.number())
   .describe("IDs of reviews supporting this item")
-  .default([]);
+  .optional();
 
 // Base sentiment schema for reuse in other schemas
 export const sentimentSchema = z.object({
@@ -22,6 +22,7 @@ export const sentimentSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Sentiment-indicating keywords found"),
+  reviewIds: reviewIdsField,
 });
 
 // Schema for individual review insights
@@ -42,6 +43,7 @@ export const reviewInsightSchema = z.object({
           .enum(["leader", "parity", "laggard"])
           .optional()
           .describe("How this feature compares to industry standards"),
+        reviewIds: reviewIdsField,
       }),
     )
     .describe(
@@ -56,6 +58,7 @@ export const reviewInsightSchema = z.object({
           .enum(["low", "medium", "high"])
           .describe("How severe is this issue to the user"),
         impact: z.string().optional().describe("Business impact of this issue"),
+        reviewIds: reviewIdsField,
       }),
     )
     .optional()
@@ -83,16 +86,40 @@ export const appAnalysisSchema = z.object({
   overview: z
     .object({
       strengths: z
-        .array(z.string())
+        .array(
+          z.object({
+            title: z.string().describe("Strength title"),
+            description: z.string().describe("Detailed description"),
+            reviewIds: reviewIdsField,
+          }),
+        )
         .describe("Key strengths of the app based on reviews"),
       weaknesses: z
-        .array(z.string())
+        .array(
+          z.object({
+            title: z.string().describe("Weakness title"),
+            description: z.string().describe("Detailed description"),
+            reviewIds: reviewIdsField,
+          }),
+        )
         .describe("Key weaknesses of the app based on reviews"),
       opportunities: z
-        .array(z.string())
+        .array(
+          z.object({
+            title: z.string().describe("Opportunity title"),
+            description: z.string().describe("Detailed description"),
+            reviewIds: reviewIdsField,
+          }),
+        )
         .describe("Potential opportunities for improvement"),
       threats: z
-        .array(z.string())
+        .array(
+          z.object({
+            title: z.string().describe("Threat title"),
+            description: z.string().describe("Detailed description"),
+            reviewIds: reviewIdsField,
+          }),
+        )
         .describe("Competitive threats or external challenges"),
       marketPosition: z.string().describe("Current position in the market"),
       targetDemographic: z.string().describe("Main user demographic"),
@@ -122,6 +149,7 @@ export const appAnalysisSchema = z.object({
         retentionRisk: z
           .enum(["low", "medium", "high"])
           .describe("Risk of churning"),
+        reviewIds: reviewIdsField,
       }),
     )
     .default([])
@@ -161,6 +189,7 @@ export const appAnalysisSchema = z.object({
           .string()
           .optional()
           .describe("Target user segment if applicable"),
+        reviewIds: reviewIdsField,
       }),
     )
     .default([])
@@ -181,14 +210,24 @@ export const competitiveAdvantagesSchema = z.object({
   competitiveAdvantages: z
     .record(
       z.string(), // App ID or name
-      z.array(z.string()), // List of advantages
+      z.array(
+        z.object({
+          advantage: z.string().describe("Advantage description"),
+          reviewIds: reviewIdsField,
+        }),
+      ),
     )
     .describe("Key advantages each app has according to reviews")
     .default({}),
   uniqueSellingPropositions: z
     .record(
       z.string(), // App ID or name
-      z.array(z.string()), // List of USPs
+      z.array(
+        z.object({
+          proposition: z.string().describe("USP description"),
+          reviewIds: reviewIdsField,
+        }),
+      ),
     )
     .describe("Unique selling propositions of each app")
     .default({}),
@@ -215,6 +254,13 @@ export const featureComparisonSchema = z.object({
           .string()
           .optional()
           .describe("Any noticeable trends in this feature area"),
+        reviewIdsMap: z
+          .record(
+            z.string(), // App ID or name
+            reviewIdsField,
+          )
+          .optional()
+          .describe("Map of review IDs supporting this feature for each app"),
       }),
     )
     .describe("Comparison of key features across apps"),
@@ -232,6 +278,7 @@ export const sentimentComparisonSchema = z.object({
         trend: z
           .enum(["improving", "stable", "declining", "unknown"])
           .describe("Sentiment trend"),
+        reviewIds: reviewIdsField,
       }),
     )
     .describe("Comparison of sentiment across apps"),
@@ -249,6 +296,7 @@ export const marketGapsSchema = z.object({
         competitiveBarrier: z
           .enum(["low", "medium", "high"])
           .describe("Barrier to entry"),
+        reviewIds: reviewIdsField,
       }),
     )
     .describe("Identified gaps in the market that represent opportunities"),
@@ -264,6 +312,7 @@ export const userSegmentAnalysisSchema = z.object({
         growthPotential: z
           .enum(["low", "medium", "high"])
           .describe("Growth potential of this segment"),
+        reviewIds: reviewIdsField,
       }),
     )
     .describe("Analysis of different user segments and their preferences"),
@@ -276,10 +325,21 @@ export const pricingAnalysisSchema = z.object({
         .record(z.string(), z.string())
         .describe("Summary of each app's pricing model"),
       userPerception: z
-        .record(z.string(), z.string())
+        .record(
+          z.string(),
+          z.object({
+            perception: z.string().describe("User perception"),
+            reviewIds: reviewIdsField,
+          }),
+        )
         .describe("How users perceive each app's pricing"),
       optimizationOpportunities: z
-        .array(z.string())
+        .array(
+          z.object({
+            opportunity: z.string().describe("Optimization opportunity"),
+            reviewIds: reviewIdsField,
+          }),
+        )
         .describe("Ways to optimize pricing strategy"),
     })
     .describe("Analysis of pricing models across competitors"),
@@ -302,6 +362,7 @@ export const recommendationsSchema = z.object({
         potentialImpact: z
           .enum(["low", "medium", "high"])
           .describe("Potential competitive impact"),
+        reviewIds: reviewIdsField,
       }),
     )
     .describe("Recommended actions based on competitive analysis"),

@@ -60,7 +60,7 @@ export const reviewsRouter = createTRPCRouter({
             in: reviewIds,
           },
           appId: {
-            in: userAppIds,
+            in: userAppIds.filter((id): id is number => id !== null),
           },
         },
         select: {

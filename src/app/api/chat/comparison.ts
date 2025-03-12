@@ -1,145 +1,60 @@
 import type {
   AppAnalysisResult,
   FeatureComparisonItem,
-  StrengthsResult,
-  WeaknessesResult,
   ComparisonData,
-} from "./types";
+} from "@/types";
 import { generateAIRecommendations } from "./recommendations";
-import { db } from "@/server/db";
-
-// Check if user has access to all apps in a comparison
-async function checkUserComparisonAccess(
-  userId: string,
-  appIds: string[],
-): Promise<boolean> {
-  try {
-    // Get user's analyses that contain any of these app IDs
-    const userAnalyses = await db.analysis.findMany({
-      where: {
-        userId: userId,
-        analysisApps: {
-          some: {
-            appId: {
-              in: appIds,
-            },
-          },
-        },
-      },
-      include: {
-        analysisApps: {
-          where: {
-            appId: {
-              in: appIds,
-            },
-          },
-          select: {
-            appId: true,
-          },
-        },
-      },
-    });
-
-    // Extract all accessible app IDs
-    const accessibleAppIds = new Set<string>();
-    userAnalyses.forEach((analysis) => {
-      analysis.analysisApps.forEach((app) => {
-        accessibleAppIds.add(app.appId);
-      });
-    });
-
-    // Check if all requested app IDs are accessible to the user
-    return appIds.every((appId) => accessibleAppIds.has(appId));
-  } catch (error) {
-    console.error("Error checking user comparison access:", error);
-    return false;
-  }
-}
-
-// Function to process map entries for strengths
-export function processStrengthsMap(
-  map: Map<string, string[]>,
-): StrengthsResult {
-  const common = Array.from(map.entries())
-    .filter(([, apps]) => apps.length > 1)
-    .map(([strength, apps]) => ({
-      strength,
-      apps,
-    }));
-
-  const unique = Array.from(map.entries())
-    .filter(([, apps]) => apps.length === 1)
-    .map(([strength, apps]) => ({
-      strength,
-      app: apps[0] ?? "",
-    }));
-
-  return { common, unique };
-}
-
-// Function to process map entries for weaknesses
-export function processWeaknessesMap(
-  map: Map<string, string[]>,
-): WeaknessesResult {
-  const common = Array.from(map.entries())
-    .filter(([, apps]) => apps.length > 1)
-    .map(([weakness, apps]) => ({
-      weakness,
-      apps,
-    }));
-
-  const unique = Array.from(map.entries())
-    .filter(([, apps]) => apps.length === 1)
-    .map(([weakness, apps]) => ({
-      weakness,
-      app: apps[0] ?? "",
-    }));
-
-  return { common, unique };
-}
 
 // Function to generate cross-app comparison
 export async function generateComparison(
   appAnalyses: AppAnalysisResult[],
-  userId: string,
+  options?: { traceId?: string; userEmail?: string },
 ): Promise<ComparisonData> {
-  // Extract app IDs for authorization check
-  const appIds = appAnalyses.map((analysis) => analysis.appInfo.appId);
+  // Generate comparison data from multiple app analyses
+  const { featureComparison, featureReviewMap } = compareFeatures(appAnalyses);
 
-  // Check if user has access to all apps
-  const hasAccess = await checkUserComparisonAccess(userId, appIds);
+  // Get market position and pricing comparisons
+  const marketPositionComparison = compareMarketPosition(appAnalyses);
+  const { pricingComparison, pricingReviewMap } = comparePricing(appAnalyses);
+  const userBaseComparison = compareUserBase(appAnalyses);
 
-  if (!hasAccess) {
-    throw new Error(
-      "Access denied: You don't have permission to compare one or more of these apps",
-    );
-  }
+  // Generate AI recommendations
+  const recommendationSummary = await generateAIRecommendations(
+    appAnalyses,
+    options,
+  );
 
-  // Prepare comparison data
-  const comparisonData: ComparisonData = {
-    type: "comparison_results",
-    apps: appAnalyses.map((analysis) => ({
-      appName: analysis.appInfo.name,
-      appId: analysis.appInfo.appId,
-      rating: analysis.appInfo.score.toFixed(1),
-      ratingCount: analysis.appInfo.reviews,
-    })),
-    featureComparison: compareFeatures(appAnalyses),
-    strengthsComparison: compareStrengths(appAnalyses),
-    weaknessesComparison: compareWeaknesses(appAnalyses),
-    marketPositionComparison: compareMarketPosition(appAnalyses),
-    pricingComparison: comparePricing(appAnalyses),
-    userBaseComparison: compareUserBase(appAnalyses),
-    recommendationSummary: await generateAIRecommendations(appAnalyses),
+  // Construct app data for the comparison
+  const apps = appAnalyses.map((app) => ({
+    appName: app.appInfo.name,
+    appId: app.appInfo.id,
+    rating: app.appInfo.score ? app.appInfo.score.toFixed(1) : "0.0",
+    ratingCount: app.appInfo.ratings ?? 0,
+  }));
+
+  // Collect all review mappings with debug logs
+  const reviews = {
+    feature: featureReviewMap || {},
+    pricing: pricingReviewMap || {},
   };
 
-  return comparisonData;
+  // Return the comprehensive comparison data
+  return {
+    type: "comparison_results",
+    apps,
+    featureComparison,
+    marketPositionComparison,
+    pricingComparison,
+    userBaseComparison,
+    recommendationSummary,
+    reviews,
+  };
 }
 
-// Helper functions for comparison
-export function compareFeatures(
-  appAnalyses: AppAnalysisResult[],
-): FeatureComparisonItem[] {
+export function compareFeatures(appAnalyses: AppAnalysisResult[]): {
+  featureComparison: FeatureComparisonItem[];
+  featureReviewMap: Record<string, Record<string, number[]>>;
+} {
   // Get top features from each app and compare sentiment
   const allFeatures = new Map<
     string,
@@ -147,113 +62,147 @@ export function compareFeatures(
       scores: number[];
       mentions: number[];
       apps: string[];
+      reviewIds: Record<string, number[]>; // Map app name to review IDs
     }
   >();
 
-  appAnalyses.forEach((analysis) => {
+  // Process app analyses one by one
+  for (const analysis of appAnalyses) {
     const appName = analysis.appInfo.name;
-    analysis.analysis.featureAnalysis.forEach((feature) => {
+
+    // Extract and normalize features from the analysis
+
+    // Process all normalized features
+    for (const feature of analysis.analysis.keyFeatures) {
       const featureName = feature.feature.toLowerCase();
+
+      // Add to allFeatures map
       if (!allFeatures.has(featureName)) {
-        allFeatures.set(featureName, { scores: [], mentions: [], apps: [] });
+        allFeatures.set(featureName, {
+          scores: [],
+          mentions: [],
+          apps: [],
+          reviewIds: {},
+        });
       }
-      const featureData = allFeatures.get(featureName)!;
-      featureData.scores.push(feature.sentimentScore);
-      featureData.mentions.push(feature.mentionCount);
-      featureData.apps.push(appName);
-    });
-  });
+
+      const featureData = allFeatures.get(featureName);
+      if (featureData) {
+        // Convert sentiment string to a numeric value for calculations
+        let sentimentValue: number;
+        switch (feature.sentiment) {
+          case "positive":
+            sentimentValue = 1;
+            break;
+          case "negative":
+            sentimentValue = -1;
+            break;
+          case "mixed":
+            sentimentValue = 0.25;
+            break;
+          case "neutral":
+          default:
+            sentimentValue = 0;
+            break;
+        }
+
+        featureData.scores.push(sentimentValue);
+        // Use a default value for mentions since we now have description instead
+        const mentions = feature.reviewIds.length || 1;
+        featureData.mentions.push(mentions);
+
+        // Store review IDs for this feature and app
+        featureData.reviewIds[appName] = feature.reviewIds;
+
+        if (!featureData.apps.includes(appName)) {
+          featureData.apps.push(appName);
+        }
+      }
+    }
+  }
+
+  // Prepare the review mappings with better logging
+  const featureReviewMap: Record<string, Record<string, number[]>> = {};
 
   // Convert to array and sort by number of apps and then by total mentions
-  return Array.from(allFeatures.entries())
-    .map(([feature, data]) => ({
-      feature: feature,
-      appCoverage: data.apps.length / appAnalyses.length,
-      averageSentiment:
-        data.scores.reduce((sum, score) => sum + score, 0) / data.scores.length,
-      totalMentions: data.mentions.reduce((sum, count) => sum + count, 0),
-      presentInApps: data.apps,
-    }))
+  const featureComparison = Array.from(allFeatures.entries())
+    .map(([feature, data]) => {
+      // Store the review mappings for this feature
+      featureReviewMap[feature] = data.reviewIds;
+
+      return {
+        feature: feature,
+        appCoverage: data.apps.length / appAnalyses.length,
+        averageSentiment:
+          data.scores.reduce((sum, score) => sum + score, 0) /
+          (data.scores.length || 1),
+        totalMentions: data.mentions.reduce((sum, count) => sum + count, 0),
+        presentInApps: data.apps,
+      };
+    })
     .sort(
       (a, b) =>
         b.appCoverage - a.appCoverage || b.totalMentions - a.totalMentions,
     );
-}
 
-export function compareStrengths(
-  appAnalyses: AppAnalysisResult[],
-): StrengthsResult {
-  // Compare strengths across apps
-  const appStrengths = appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.name,
-    strengths: analysis.analysis.overview.strengths,
-  }));
-
-  // Find common strengths
-  const strengthsMap = new Map<string, string[]>();
-
-  appStrengths.forEach((appStrength) => {
-    appStrength.strengths.forEach((strength: string) => {
-      const key = strength.toLowerCase();
-      if (!strengthsMap.has(key)) {
-        strengthsMap.set(key, []);
-      }
-      strengthsMap.get(key)!.push(appStrength.appName);
-    });
-  });
-
-  // Return common strengths and unique strengths using the helper function
-  return processStrengthsMap(strengthsMap);
-}
-
-export function compareWeaknesses(
-  appAnalyses: AppAnalysisResult[],
-): WeaknessesResult {
-  // Compare weaknesses across apps
-  const appWeaknesses = appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.name,
-    weaknesses: analysis.analysis.overview.weaknesses,
-  }));
-
-  // Find common weaknesses
-  const weaknessesMap = new Map<string, string[]>();
-
-  appWeaknesses.forEach((appWeakness) => {
-    appWeakness.weaknesses.forEach((weakness: string) => {
-      const key = weakness.toLowerCase();
-      if (!weaknessesMap.has(key)) {
-        weaknessesMap.set(key, []);
-      }
-      weaknessesMap.get(key)!.push(appWeakness.appName);
-    });
-  });
-
-  // Return common weaknesses and unique weaknesses using the helper function
-  return processWeaknessesMap(weaknessesMap);
+  return { featureComparison, featureReviewMap };
 }
 
 export function compareMarketPosition(appAnalyses: AppAnalysisResult[]) {
   // Return market position for each app
   return appAnalyses.map((analysis) => ({
     appName: analysis.appInfo.name,
-    marketPosition: analysis.analysis.overview.marketPosition,
+    marketPosition: analysis.analysis.overview?.marketPosition || "",
   }));
 }
 
-export function comparePricing(appAnalyses: AppAnalysisResult[]) {
+export function comparePricing(appAnalyses: AppAnalysisResult[]): {
+  pricingComparison: Array<{
+    appName: string;
+    valueForMoney: number;
+    pricingComplaints: number;
+    willingness: string;
+    reviewIds: number[];
+  }>;
+  pricingReviewMap: Record<string, number[]>;
+} {
+  // Initialize the review mapping object
+  const pricingReviewMap: Record<string, number[]> = {};
+
   // Compare pricing perception across apps
-  return appAnalyses.map((analysis) => ({
-    appName: analysis.appInfo.name,
-    valueForMoney: analysis.analysis.pricingPerception.valueForMoney,
-    pricingComplaints: analysis.analysis.pricingPerception.pricingComplaints,
-    willingness: analysis.analysis.pricingPerception.willingness,
-  }));
+  const pricingComparison = appAnalyses.map((analysis) => {
+    const appName = analysis.appInfo.name;
+    const pricingPerception = analysis.analysis.pricingPerception as {
+      valueForMoney: number;
+      pricingComplaints: number;
+      willingness: string;
+      reviewIds: number[];
+    };
+
+    // Ensure reviewIds exists and is an array
+    const reviewIds = Array.isArray(pricingPerception?.reviewIds)
+      ? pricingPerception.reviewIds
+      : [];
+
+    // Add review IDs to the map
+    pricingReviewMap[appName] = reviewIds;
+
+    return {
+      appName,
+      valueForMoney: pricingPerception?.valueForMoney || 0,
+      pricingComplaints: pricingPerception?.pricingComplaints || 0,
+      willingness: pricingPerception?.willingness || "",
+      reviewIds: reviewIds,
+    };
+  });
+
+  return { pricingComparison, pricingReviewMap };
 }
 
 export function compareUserBase(appAnalyses: AppAnalysisResult[]) {
   // Compare user demographics across apps
   return appAnalyses.map((analysis) => ({
     appName: analysis.appInfo.name,
-    demographics: analysis.analysis.overview.targetDemographic,
+    demographics: analysis.analysis.overview?.targetDemographic || "",
   }));
 }

@@ -7,9 +7,6 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  sentry: {
-    disableServerWebpackPlugin: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -21,7 +18,6 @@ const config = {
 };
 
 // Injected content via Sentry wizard below
-
 export default withSentryConfig(config, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
