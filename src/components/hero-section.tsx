@@ -79,6 +79,7 @@ export function HeroSection() {
         >
           <source src="/video.mp4" type="video/mp4" />
         </video>
+
         <div className="z-10 h-full w-full before:absolute before:inset-0 before:size-full before:bg-[radial-gradient(circle_at_center,_rgba(255,255,255,.6)_5%,_rgba(255,255,255,1)_60%)] before:content-['']" />
       </div>
 

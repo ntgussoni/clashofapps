@@ -3,7 +3,6 @@ import { auth } from "@/server/auth";
 import { headers } from "next/headers";
 import { type Metadata } from "next";
 import { siteConfig } from "@/lib/config";
-import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} - Home`,

@@ -118,7 +118,7 @@ function AppIcon({ app, index }: AppIconProps) {
       <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-sm transition-all duration-200 group-hover:border-blue-200 group-hover:shadow-md">
         {hasIcon ? (
           <Image
-            src={app.icon as string}
+            src={app.icon!}
             alt={`${app?.name ?? `App ${index + 1}`} icon`}
             width={64}
             height={64}
