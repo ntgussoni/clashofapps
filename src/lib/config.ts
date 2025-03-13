@@ -8,8 +8,8 @@
 export const siteConfig = {
   // General site information
   name: "Clash of Apps",
-  description: "Track Competitors. Spot Weaknesses. Build a Winning App.",
-  copyrightYear: "2024",
+  description: "Track & Analyze Your App Competitors",
+  copyrightYear: new Date().getFullYear(),
 
   // URLs
   url: "https://clashofapps.com",
@@ -18,7 +18,7 @@ export const siteConfig = {
   email: "hey@clashofapps.com",
 
   // Social media profiles
-  twitter: "https://twitter.com/clashofapps",
+  twitter: "https://twitter.com/ntorresdev",
   linkedin: "https://linkedin.com/company/clashofapps",
   github: "https://github.com/clashofapps",
 
@@ -31,8 +31,8 @@ export const siteConfig = {
   // Feature flags
   features: {
     darkMode: true,
-    newsletter: true,
-    socialLinks: true,
+    newsletter: false,
+    socialLinks: false,
   },
 };
 

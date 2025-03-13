@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { siteConfig } from "@/lib/config";
-import { BrandIcon } from "@/components/ui/brand-icon";
+import Link from "next/link";
+import Image from "next/image";
+import Logo from "../../public/logo.webp";
 
 export function Footer() {
   return (
@@ -9,9 +11,22 @@ export function Footer() {
       <div className="container px-4 py-12 md:px-6">
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <BrandIcon className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">{siteConfig.name}</span>
+            <div className="flex w-1/3 items-center justify-start gap-1 sm:gap-2">
+              <Link
+                href="/"
+                className="flex items-center gap-1 text-gray-500 grayscale sm:gap-2"
+              >
+                <Image
+                  src={Logo}
+                  alt="Clash of apps"
+                  width={40}
+                  height={40}
+                  className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
+                />
+                <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-lg font-extrabold tracking-tight text-transparent shadow-black drop-shadow-sm sm:text-xl">
+                  CLASH<span className="font-light"> of </span> APPS
+                </span>
+              </Link>
             </div>
             <p className="max-w-md text-muted-foreground">
               {siteConfig.description}
@@ -75,7 +90,7 @@ export function Footer() {
             </div>
           </div>
           <div className="grid gap-8 sm:grid-cols-2">
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-medium">Company</h3>
               <ul className="space-y-2 text-sm">
                 <li>
@@ -111,7 +126,7 @@ export function Footer() {
                   </a>
                 </li>
               </ul>
-            </div>
+            </div> */}
             {siteConfig.features.newsletter && (
               <div className="space-y-4">
                 <h3 className="font-medium">Stay Updated</h3>
