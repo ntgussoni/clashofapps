@@ -2,13 +2,13 @@
 
 import { HeroSection } from "@/components/hero-section";
 import { FeaturesSection } from "./features-section";
-import { CreditInfoSection } from "./credit-info-section";
+// import { CreditInfoSection } from "./credit-info-section";
 
 export function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <HeroSection />
-      <CreditInfoSection />
+      {/* <CreditInfoSection /> */}
       <FeaturesSection />
 
       {/* Additional sections can be uncommented when needed */}
