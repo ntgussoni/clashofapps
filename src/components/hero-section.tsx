@@ -121,29 +121,47 @@ export function HeroSection() {
         <div className="container mx-auto px-4 py-12 sm:py-16 md:py-24">
           <div className="mx-auto max-w-4xl space-y-6 text-center sm:space-y-10">
             {isClient && (
-              <motion.h1
-                className="flex flex-col items-center text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-              >
-                <motion.span
-                  className="block font-black text-zinc-800 shadow-zinc-800/50 drop-shadow-lg"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.2 }}
+              <>
+                <motion.div
+                  className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-blue-200/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 shadow-sm backdrop-blur-md"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
                 >
-                  Track & Analyze
-                </motion.span>
-                <motion.span
-                  className="bg-gradient-to-r from-blue-600 to-cyan-500/90 bg-clip-text pt-2 text-transparent shadow-primary-foreground drop-shadow-lg sm:pt-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.5 }}
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z" />
+                  </svg>
+                  Testing phase, feedback welcome
+                </motion.div>
+
+                <motion.h1
+                  className="flex flex-col items-center text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, ease: "easeOut" }}
                 >
-                  Your App Competitors
-                </motion.span>
-              </motion.h1>
+                  <motion.span
+                    className="block font-black text-zinc-800 shadow-zinc-800/50 drop-shadow-lg"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7, delay: 0.2 }}
+                  >
+                    Track & Analyze
+                  </motion.span>
+                  <motion.span
+                    className="bg-gradient-to-r from-blue-600 to-cyan-500/90 bg-clip-text pt-2 text-transparent shadow-primary-foreground drop-shadow-lg sm:pt-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7, delay: 0.5 }}
+                  >
+                    Your App Competitors
+                  </motion.span>
+                </motion.h1>
+              </>
             )}
 
             {isClient && (
