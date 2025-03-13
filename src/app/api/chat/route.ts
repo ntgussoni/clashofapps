@@ -11,6 +11,8 @@ import { processAppAnalysis } from "./appAnalysis";
 import type { AppAnalysisResult } from "@/types";
 import { db } from "@/server/db";
 import { randomUUID } from "crypto";
+import { createTRPCContext } from "@/server/api/trpc";
+import { createCaller } from "@/server/api/root";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,6 +30,10 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    // Set up TRPC context for credit operations
+    const trpcContext = await createTRPCContext({ headers: req.headers });
+    const trpc = createCaller(trpcContext);
 
     const userId = session.user.id;
     const userEmail = session.user.email || "unknown";
@@ -67,6 +73,26 @@ export async function POST(req: NextRequest) {
       id: aa.id,
       appStoreId: aa.appStoreId,
     }));
+
+    // Check if user has enough credits for the analysis
+    // Each app requires 1 credit
+    const requiredCredits = allAnalysisApps.length;
+    const hasCredits = await trpc.credits.hasEnoughCredits({
+      amount: requiredCredits,
+    });
+
+    if (!hasCredits) {
+      return new Response(
+        JSON.stringify({
+          error: "Not enough credits",
+          message: `This analysis requires ${requiredCredits} credits. Please add more credits to continue.`,
+        }),
+        {
+          status: 402, // Payment Required
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // Create a data stream response
     return createDataStreamResponse({

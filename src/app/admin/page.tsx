@@ -30,6 +30,7 @@ import {
   RefreshCw,
   UserCircle,
   Calendar as CalendarIcon,
+  Coins,
 } from "lucide-react";
 import {
   Dialog,
@@ -48,6 +49,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/trpc/react";
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -65,6 +67,28 @@ export default function AdminDashboard() {
     userId: "",
     reason: "",
     expirationDate: undefined as Date | undefined,
+  });
+  const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
+  const [creditsForm, setCreditsForm] = useState({
+    userId: "",
+    userName: "",
+    amount: 1,
+  });
+
+  // Add credits mutation
+  const addCreditsMutation = api.credits.addCreditsToUser.useMutation({
+    onSuccess: () => {
+      toast.success(
+        `Added ${creditsForm.amount} credits to ${creditsForm.userName}`,
+      );
+      setIsCreditsDialogOpen(false);
+      void queryClient.invalidateQueries({
+        queryKey: ["users"],
+      });
+    },
+    onError: (error) => {
+      toast.error(`Failed to add credits: ${error.message}`);
+    },
   });
 
   const { data: users, isLoading: isUsersLoading } = useQuery({
@@ -85,6 +109,22 @@ export default function AdminDashboard() {
       return data?.users || [];
     },
   });
+
+  // Fetch all user credits with a single query
+  const { data: allUserCredits, isLoading: isCreditsLoading } =
+    api.credits.getAllUserCredits.useQuery(undefined, {
+      // Only fetch if users are loaded
+      enabled: !!users?.length,
+    });
+
+  // Function to get credits for a specific user
+  const getUserCredits = (userId: string) => {
+    if (isCreditsLoading) return "Loading...";
+    if (!allUserCredits) return "N/A";
+
+    const userCredit = allUserCredits.find((credit) => credit.id === userId);
+    return userCredit?.credits ?? "N/A";
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +221,14 @@ export default function AdminDashboard() {
     } finally {
       setIsLoading(undefined);
     }
+  };
+
+  const handleAddCredits = (e: React.FormEvent) => {
+    e.preventDefault();
+    addCreditsMutation.mutate({
+      userId: creditsForm.userId,
+      amount: creditsForm.amount,
+    });
   };
 
   return (
@@ -335,6 +383,52 @@ export default function AdminDashboard() {
               </form>
             </DialogContent>
           </Dialog>
+          <Dialog
+            open={isCreditsDialogOpen}
+            onOpenChange={setIsCreditsDialogOpen}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Credits to User</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddCredits} className="space-y-4">
+                <div>
+                  <Label>User</Label>
+                  <div className="font-medium">{creditsForm.userName}</div>
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="amount">Number of Credits</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    min="1"
+                    value={creditsForm.amount}
+                    onChange={(e) =>
+                      setCreditsForm({
+                        ...creditsForm,
+                        amount: parseInt(e.target.value) || 1,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={addCreditsMutation.isPending}
+                >
+                  {addCreditsMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding Credits...
+                    </>
+                  ) : (
+                    "Add Credits"
+                  )}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           {isUsersLoading ? (
@@ -349,6 +443,7 @@ export default function AdminDashboard() {
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Banned</TableHead>
+                  <TableHead>Credits</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -364,6 +459,12 @@ export default function AdminDashboard() {
                       ) : (
                         <Badge variant="outline">No</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 font-medium">
+                        <Coins className="h-4 w-4 text-orange-500" />
+                        {getUserCredits(user.id)}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
@@ -453,6 +554,21 @@ export default function AdminDashboard() {
                           ) : (
                             "Ban"
                           )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCreditsForm({
+                              userId: user.id,
+                              userName: user.name || user.email,
+                              amount: 1,
+                            });
+                            setIsCreditsDialogOpen(true);
+                          }}
+                        >
+                          <Coins className="mr-2 h-4 w-4" />
+                          Add Credits
                         </Button>
                       </div>
                     </TableCell>

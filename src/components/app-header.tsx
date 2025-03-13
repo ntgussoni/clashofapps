@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { CircleUser, Menu } from "lucide-react";
+import { CircleUser, Menu, Coins } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,13 @@ import type { auth } from "@/server/auth";
 
 import Logo from "../../public/logo.webp";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+import { api } from "@/trpc/react";
 
 type Session = typeof auth.$Infer.Session;
 
@@ -43,20 +50,31 @@ export function AppHeader({
   const session = data ?? initialSession;
   const router = useRouter();
 
+  // Use tRPC query for credits
+  const { data: credits, isLoading } = api.credits.getMyCredits.useQuery(
+    undefined,
+    {
+      // Only fetch if logged in
+      enabled: !!session?.user?.id,
+      // Refresh every minute
+      refetchInterval: 60 * 1000,
+    },
+  );
+
   const handleSignOut = async () => {
     await authClient.signOut();
     router.refresh();
   };
 
-  const navigation = [
-    { name: "Features", href: "#features" },
-    { name: "How It Works", href: "#how-it-works" },
-    { name: "Pricing", href: "#pricing" },
+  const navigation: { name: string; href: string }[] = [
+    // { name: "Features", href: "#features" },
+    // { name: "How It Works", href: "#how-it-works" },
+    // { name: "Pricing", href: "#pricing" },
   ];
 
   const loggedInNavigation = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "New Comparison", href: "/new-analysis" },
+    // { name: "New Comparison", href: "/new-analysis" },
   ];
 
   return (
@@ -115,6 +133,21 @@ export function AppHeader({
         <div className="flex w-1/3 items-center justify-end gap-2 sm:gap-4">
           {session ? (
             <>
+              {/* Credits Display */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-1 text-sm font-medium text-orange-800">
+                      <Coins className="h-4 w-4" />
+                      <span>{isLoading ? "..." : (credits ?? 0)}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Available credits for app analysis</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -141,6 +174,9 @@ export function AppHeader({
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
+                  {/* <DropdownMenuItem asChild>
+                    <Link href="/credits">Buy Credits</Link>
+                  </DropdownMenuItem> */}
                   {session.user.role === "admin" && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin">Admin</Link>

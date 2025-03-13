@@ -3,6 +3,17 @@
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import {
+  AlertCircle,
+  RefreshCw,
+  CreditCard,
+  Lock,
+  FileSearch,
+  Loader2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 import type { AnalysisResultsData, ComparisonData } from "@/types";
 
@@ -37,6 +48,13 @@ type DataItem =
   | ({ type: "analysis_results" } & AnalysisResultsData)
   | ({ type: "comparison_results" } & ComparisonData);
 
+// Define error types to match API responses
+type ApiError = {
+  status: number;
+  message: string;
+  error: string;
+};
+
 // Memoized components to prevent unnecessary re-renders
 const MemoizedAppInfoCard = memo(AppInfoCard);
 const MemoizedAnalysisCard = memo(AnalysisCard);
@@ -53,6 +71,10 @@ export default function AnalysisPage() {
   const [comparisonResults, setComparisonResults] =
     useState<ComparisonData | null>(null);
 
+  // Add error state
+  const [error, setError] = useState<ApiError | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
   // Add state to track loading apps and specific loading states
   const [loadingAppIds, setLoadingAppIds] = useState<number[]>([]);
   const [loadingAppInfo, setLoadingAppInfo] = useState(false);
@@ -61,6 +83,8 @@ export default function AnalysisPage() {
   const [completed, setCompleted] = useState(false);
   // Track processed data items to prevent duplicate processing
   const processedDataRef = useRef(new Set<string>());
+  // Add this new ref to track form submissions
+  const submittedAnalysisIdRef = useRef<string | null>(null);
 
   // Extract the analysis ID from the slug (the part after the last dash)
   const analysisId = useMemo(() => {
@@ -70,14 +94,60 @@ export default function AnalysisPage() {
     return parts[parts.length - 1] ?? null;
   }, [params.slug]);
 
-  // Use the useChat hook from Vercel AI SDK
+  // Use the useChat hook from Vercel AI SDK with error handling
   const { handleSubmit, data } = useChat({
     api: "/api/chat",
     initialInput: analysisId ?? "",
     body: {
       slug: params.slug,
     },
+    onError: (error) => {
+      // Parse error response
+      try {
+        const errorResponse = JSON.parse(error.message) as Record<
+          string,
+          unknown
+        >;
+        setError({
+          status: (errorResponse.status as number) || 500,
+          message:
+            (errorResponse.message as string) || "An unknown error occurred",
+          error: (errorResponse.error as string) || "Error",
+        });
+      } catch {
+        // If parsing fails, use the raw error message
+        setError({
+          status: 500,
+          message: error.message,
+          error: "Error",
+        });
+      }
+      setIsInitialLoading(false);
+    },
+    onFinish: () => {
+      setIsInitialLoading(false);
+    },
   });
+
+  // Define a function to handle retrying the analysis
+  const handleRetry = useCallback(() => {
+    // Reset states
+    setError(null);
+    setAppInfos([]);
+    setAnalysisResults([]);
+    setComparisonResults(null);
+    setCurrentStatus(null);
+    setCompleted(false);
+    processedDataRef.current.clear();
+    setLoadingAppInfo(true);
+    setLoadingAnalysis(true);
+    setIsInitialLoading(true);
+
+    // Resubmit the form
+    handleSubmit(
+      new Event("submit") as unknown as React.FormEvent<HTMLFormElement>,
+    );
+  }, [handleSubmit]);
 
   // Memoize the skeletons loading app list to prevent re-calculations
   const skeletonLoadingAppIds = useMemo(() => {
@@ -149,6 +219,14 @@ export default function AnalysisPage() {
               setLoadingAnalysis(false);
               setCompleted(true);
               setShowComparisonSkeleton(false);
+            } else if (statusItem.status === "error") {
+              // Handle error status
+              setError({
+                status: 500,
+                message: statusItem.message,
+                error: "Error",
+              });
+              setIsInitialLoading(false);
             }
           }
           break;
@@ -219,12 +297,18 @@ export default function AnalysisPage() {
     data.forEach(processDataItem);
   }, [data, processDataItem]);
 
-  // Auto-submit the form when the component mounts and we have an analysis ID
+  // Fix the auto-submit useEffect to prevent infinite loops
   useEffect(() => {
-    if (analysisId) {
+    // Only submit if we have an analysisId and haven't submitted this ID yet
+    if (analysisId && submittedAnalysisIdRef.current !== analysisId) {
+      // Update the ref to mark this ID as submitted
+      submittedAnalysisIdRef.current = analysisId;
+
       // Set loading states based on what we're doing
       setLoadingAppInfo(true);
       setLoadingAnalysis(true);
+      setIsInitialLoading(true);
+      setError(null);
 
       // Clear processed data items when submitting a new request
       processedDataRef.current.clear();
@@ -244,23 +328,210 @@ export default function AnalysisPage() {
   // Show loading state or error if no analysisId
   if (!analysisId) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-[70vh] items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <FileSearch className="mx-auto h-12 w-12 text-gray-400" />
+          <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
             Invalid Analysis URL
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             The analysis ID could not be found in the URL.
           </p>
+          <Button asChild className="mt-4">
+            <Link href="/dashboard">Return to Dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render appropriate error messages based on error status
+  if (error) {
+    let errorContent;
+
+    switch (error.status) {
+      case 401:
+        errorContent = (
+          <div className="flex h-[70vh] items-center justify-center">
+            <div className="w-full max-w-md text-center">
+              <Lock className="mx-auto h-12 w-12 text-gray-400" />
+              <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+                Authentication Required
+              </h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Please log in to view this analysis.
+              </p>
+              <div className="mt-6 flex justify-center gap-4">
+                <Button asChild>
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+        break;
+
+      case 403:
+        errorContent = (
+          <div className="flex h-[70vh] items-center justify-center">
+            <div className="w-full max-w-md text-center">
+              <Lock className="mx-auto h-12 w-12 text-gray-400" />
+              <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+                Access Denied
+              </h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                You don&apos;t have permission to view this analysis.
+              </p>
+              <Button asChild className="mt-4">
+                <Link href="/dashboard">Return to Dashboard</Link>
+              </Button>
+            </div>
+          </div>
+        );
+        break;
+
+      case 404:
+        errorContent = (
+          <div className="flex h-[70vh] items-center justify-center">
+            <div className="w-full max-w-md text-center">
+              <FileSearch className="mx-auto h-12 w-12 text-gray-400" />
+              <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+                Analysis Not Found
+              </h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                The analysis you&apos;re looking for doesn&apos;t exist or has
+                been removed.
+              </p>
+              <Button asChild className="mt-4">
+                <Link href="/dashboard">Return to Dashboard</Link>
+              </Button>
+            </div>
+          </div>
+        );
+        break;
+
+      case 402:
+        errorContent = (
+          <div className="flex h-[70vh] items-center justify-center">
+            <div className="w-full max-w-md text-center">
+              <CreditCard className="mx-auto h-12 w-12 text-gray-400" />
+              <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+                Not Enough Credits
+              </h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                {error.message || "You need more credits to run this analysis."}
+              </p>
+              <div className="mt-6 flex justify-center gap-4">
+                <Button asChild>
+                  <Link href="/credits">Add Credits</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard">Return to Dashboard</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+        break;
+
+      default:
+        errorContent = (
+          <div className="flex h-[70vh] items-center justify-center">
+            <div className="w-full max-w-md">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error Processing Analysis</AlertTitle>
+                <AlertDescription>
+                  {error.message ||
+                    "Something went wrong while analyzing the apps."}
+                </AlertDescription>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    onClick={handleRetry}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry Analysis
+                  </Button>
+                </div>
+              </Alert>
+            </div>
+          </div>
+        );
+    }
+
+    return errorContent;
+  }
+
+  // Zero state - when data is loading initially
+  if (isInitialLoading && !appInfos.length && !analysisResults.length) {
+    return (
+      <div className="mx-auto max-w-6xl p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            App Analysis
+          </h2>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Starting analysis...</span>
+          </div>
+        </div>
+
+        {/* App info skeletons */}
+        <div className="mb-8">
+          <div className="flex flex-row gap-4 overflow-x-auto pb-4">
+            <MemoizedSkeletonAppInfoCard />
+            <MemoizedSkeletonAppInfoCard />
+          </div>
+        </div>
+
+        {/* Analysis skeletons */}
+        <div className="mb-8">
+          <h3 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+            App Analysis
+          </h3>
+          <div className="flex flex-row gap-4 overflow-x-auto pb-4">
+            <MemoizedSkeletonAnalysisCard />
+            <MemoizedSkeletonAnalysisCard />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="auto mx-auto flex w-full max-w-6xl flex-grow flex-col">
+    <div className="auto mx-auto flex w-full max-w-6xl flex-grow flex-col p-6">
       {/* Status indicator */}
       <StatusIndicator currentStatus={currentStatus} completed={completed} />
+
+      {/* No data state */}
+      {!isInitialLoading &&
+        !error &&
+        appInfos.length === 0 &&
+        analysisResults.length === 0 && (
+          <div className="flex h-[50vh] items-center justify-center">
+            <div className="text-center">
+              <FileSearch className="mx-auto h-12 w-12 text-gray-400" />
+              <h1 className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
+                No Analysis Data
+              </h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                There is no data available for this analysis.
+              </p>
+              <Button
+                onClick={handleRetry}
+                className="mt-4 flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry Analysis
+              </Button>
+            </div>
+          </div>
+        )}
+
       <div className="overflow-x-auto">
         {/* App Info Cards */}
         {(appInfos.length > 0 || loadingAppInfo) && (

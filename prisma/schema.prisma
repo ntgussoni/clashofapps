@@ -31,6 +31,8 @@ model User {
   banReason  String?
   banExpires DateTime?
 
+  credits Int @default(10) // Default 10 credits for new users
+
   @@unique([email])
   @@map("user")
 }

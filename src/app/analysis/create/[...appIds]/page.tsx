@@ -31,6 +31,11 @@ export default async function AnalysisCreatePage({
       appStoreIds,
     });
 
+    // Deduct credits after starting the analysis
+    await api.credits.deductCredits({
+      amount: appStoreIds.length,
+    });
+
     // Redirect to the analysis detail page
     redirectUrl = `/analysis/${result.slug}`;
 
