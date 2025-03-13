@@ -15,6 +15,13 @@ Sentry.init({
       // Additional SDK configuration goes in here, for example:
       colorScheme: "system",
       isEmailRequired: true,
+      buttonLabel: "Send feedback",
+      successMessageText: "Thank you for your feedback!",
+      formTitle: "Send feedback",
+      triggerLabel: "Send feedback",
+      submitButtonLabel: "Send feedback",
+      messagePlaceholder:
+        "What's the bug/feature request? What did you expect?",
     }),
   ],
 
