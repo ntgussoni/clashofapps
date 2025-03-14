@@ -69,12 +69,14 @@ export function AppHeader({
     // { name: "Features", href: "#features" },
     // { name: "How It Works", href: "#how-it-works" },
     // { name: "Pricing", href: "#pricing" },
-    { name: "App Analyses", href: "/google-play/app-analyses" },
+    // { name: "App Analyses", href: "/google-play/app-analyses" },
+    // { name: "Browse Apps", href: "/google-play/apps" },
   ];
 
   const loggedInNavigation = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "App Analyses", href: "/google-play/app-analyses" },
+    // { name: "App Analyses", href: "/google-play/app-analyses" },
+    // { name: "Browse Apps", href: "/google-play/apps" },
     // { name: "New Comparison", href: "/new-analysis" },
   ];
 
