@@ -19,7 +19,6 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
-  SheetDescription,
   SheetHeader,
 } from "@/components/ui/sheet";
 
@@ -70,10 +69,12 @@ export function AppHeader({
     // { name: "Features", href: "#features" },
     // { name: "How It Works", href: "#how-it-works" },
     // { name: "Pricing", href: "#pricing" },
+    { name: "App Analyses", href: "/google-play/app-analyses" },
   ];
 
   const loggedInNavigation = [
     { name: "Dashboard", href: "/dashboard" },
+    { name: "App Analyses", href: "/google-play/app-analyses" },
     // { name: "New Comparison", href: "/new-analysis" },
   ];
 
@@ -84,8 +85,8 @@ export function AppHeader({
         fixed ? "fixed" : "relative",
       )}
     >
-      <div className="container flex h-14 items-center px-4 sm:h-16 sm:px-6">
-        <div className="flex w-1/3 items-center justify-start gap-1 sm:gap-2">
+      <div className="container flex h-14 items-center justify-between px-4 sm:h-16 sm:px-6">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Link href="/" className="flex items-center gap-1 sm:gap-2">
             <Image
               src={Logo}
@@ -94,14 +95,14 @@ export function AppHeader({
               height={40}
               className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12"
             />
-            <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-lg font-extrabold tracking-tight text-transparent shadow-black drop-shadow-sm sm:text-xl">
+            <span className="hidden bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-lg font-extrabold tracking-tight text-transparent shadow-black drop-shadow-sm sm:text-xl md:inline-block">
               CLASH<span className="font-light"> of </span> APPS
             </span>
           </Link>
         </div>
 
         {/* Desktop Navigation - Now properly centered */}
-        <nav className="hidden w-1/3 items-center justify-center gap-4 md:flex md:gap-6">
+        <nav className="hidden items-center justify-center gap-4 md:flex md:gap-6">
           {session ? (
             <>
               {loggedInNavigation.map((item) => (
@@ -130,7 +131,7 @@ export function AppHeader({
         </nav>
 
         {/* Auth Buttons */}
-        <div className="flex w-1/3 items-center justify-end gap-2 sm:gap-4">
+        <div className="flex items-center justify-end gap-2 sm:gap-4">
           {session ? (
             <>
               {/* Credits Display */}
@@ -215,23 +216,21 @@ export function AppHeader({
             </SheetTrigger>
             <SheetContent side="left">
               <SheetHeader>
-                <SheetTitle>Navigation Menu</SheetTitle>
-                <SheetDescription>
-                  Navigate to different sections of Clash of Apps
-                </SheetDescription>
+                <SheetTitle>
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={Logo}
+                      alt="Clash of apps"
+                      width={32}
+                      height={32}
+                    />
+                    <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-lg font-extrabold tracking-tight text-transparent shadow-black drop-shadow-sm">
+                      CLASH<span className="font-light"> of </span> APPS
+                    </span>
+                  </div>
+                </SheetTitle>
               </SheetHeader>
               <div className="mt-6 flex flex-col gap-6">
-                <div className="flex items-center gap-2">
-                  <Image
-                    src={Logo}
-                    alt="Clash of apps"
-                    width={32}
-                    height={32}
-                  />
-                  <span className="text-lg font-bold shadow-primary drop-shadow-lg">
-                    {siteConfig.name}
-                  </span>
-                </div>
                 <nav className="flex flex-col space-y-4">
                   {session ? (
                     <>

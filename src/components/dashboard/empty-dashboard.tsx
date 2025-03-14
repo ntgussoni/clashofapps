@@ -1,6 +1,6 @@
-import Link from "next/link";
+// import Link from "next/link";
 import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 
 export function EmptyDashboard() {
   return (
@@ -12,14 +12,14 @@ export function EmptyDashboard() {
       <p className="mt-2 max-w-md text-muted-foreground">
         Create your first app comparison to get started
       </p>
-      <div className="mt-6">
+      {/* <div className="mt-6">
         <Link href="/new-analysis">
           <Button className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
             New Comparison
           </Button>
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 }

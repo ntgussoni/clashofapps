@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// import Link from "next/link";
+// import { PlusCircle } from "lucide-react";
+// import { Button } from "@/components/ui/button";
 import { EmptyDashboard } from "./empty-dashboard";
 import { AppCard } from "./app-card";
 
@@ -31,17 +31,17 @@ export function DashboardContent({ analyses }: DashboardContentProps) {
     <div className="container py-10">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">App Comparisons</h1>
+          <h1 className="text-3xl font-bold tracking-tight">App Analyses</h1>
           <p className="mt-1 text-muted-foreground">
-            View and manage all your app comparisons
+            View and manage all your app analyses
           </p>
         </div>
-        <Link href="/new-analysis">
+        {/* <Link href="/new-analysis">
           <Button className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
             New Comparison
           </Button>
-        </Link>
+        </Link> */}
       </div>
 
       {analyses.length === 0 ? (

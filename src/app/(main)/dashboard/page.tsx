@@ -5,7 +5,7 @@ import { DashboardContent } from "@/components/dashboard/dashboard-content";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} - Dashboard`,
-  description: "View and manage all your app comparisons",
+  description: "View and manage all your app analyses",
 };
 
 export default async function DashboardPage() {
