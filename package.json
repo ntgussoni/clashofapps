@@ -65,7 +65,7 @@
     "google-play-scraper": "^10.0.1",
     "langfuse-vercel": "^3.36.0",
     "lucide-react": "^0.477.0",
-    "next": "^15.0.1",
+    "next": "^15.2.3",
     "patch-package": "^8.0.0",
     "pg": "^8.13.3",
     "react": "^18.3.1",
