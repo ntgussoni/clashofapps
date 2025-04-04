@@ -1,6 +1,7 @@
 # Clash of Apps 🚀
 
-<img width="1400" alt="image" src="https://github.com/user-attachments/assets/ad25b6f0-0bff-47d9-9241-d5088668e1ec" />
+https://github.com/user-attachments/assets/f7d3368c-eab0-4b95-99fe-8b88a4f26968
+
 
 Track & Analyze Your App Competitors.
 
