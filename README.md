@@ -12,7 +12,7 @@ Track & Analyze Your App Competitors with ease. An open-source competitor tracki
 
 ## Overview
 
-Clash of Apps helps you understand your competition in the app stores through data-driven insights. Compare app store listings, analyze reviews, and track market positions across both the App Store and Google Play Store.
+Clash of Apps helps you understand your competition in the app stores through data-driven insights. Compare app store listings, analyze reviews, and track market positions across Google Play Store (App Store coming soon)
 
 ## 🌟 Features
 
@@ -21,7 +21,6 @@ Clash of Apps helps you understand your competition in the app stores through da
 - **App Comparison**: Side-by-side analysis of app store listings, reviews, and ratings
 - **Review Analysis**: AI-powered sentiment analysis of competitor reviews
 - **Analytics Dashboard**: Clean, intuitive interface for viewing insights
-- **Cross-Platform**: Support for both iOS and Android apps
 
 ### Coming Soon
 
