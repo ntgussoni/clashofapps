@@ -1,5 +1,8 @@
 # Clash of Apps 🚀
 
+<img width="1400" alt="image" src="https://github.com/user-attachments/assets/ad25b6f0-0bff-47d9-9241-d5088668e1ec" />
+
+
 Track & Analyze Your App Competitors with ease. An open-source competitor tracking platform built with modern technologies.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
