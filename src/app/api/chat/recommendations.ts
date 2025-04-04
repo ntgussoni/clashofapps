@@ -169,7 +169,7 @@ ${commonWeaknesses
   .map((w) => `  - ${w.weakness} (found in: ${w.apps.join(", ")})`)
   .join("\n")}
 
-4. Feature Comparison:
+4. Feature Comparison across apps:
 ${featureComparison
   .map(
     (f) =>
@@ -181,7 +181,10 @@ ${featureComparison
   )
   .join("\n")}
 
-Based on this analysis, create a comprehensive 7-step action plan for building an app that would outperform these competitors. Each step should consist of: specific action to take, its priority level, and expected impact. Focus on addressing common weaknesses while incorporating strengths, and identifying market gaps.
+Based on this analysis, create a comprehensive 7-step action plan for building an app that would outperform these competitors. 
+Each step should consist of: specific action to take, its priority level, and expected impact. 
+Focus on addressing common weaknesses while incorporating strengths, and identifying market gaps and opportunities. 
+Use the feature comparison to identify the gaps and opportunities in the market.
 `;
 
   try {
