@@ -35,7 +35,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 
 - Node.js 18+ or Bun
 - PostgreSQL database
-- pnpm (recommended) or npm
+- npm
 
 ### Installation
 
@@ -49,7 +49,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 2. Install dependencies:
 
    ```bash
-   pnpm install
+   npm install
    ```
 
 3. Set up your environment variables:
@@ -63,7 +63,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 4. Initialize the database:
 
    ```bash
-   pnpm db:push
+   npm db:push
    ```
 
 5. Create an admin user:
@@ -74,7 +74,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 
 6. Start the development server:
    ```bash
-   pnpm dev
+   npm dev
    ```
 
 Visit `http://localhost:3000` to see your app!
