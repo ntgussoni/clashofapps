@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { CircleUser, Menu, Coins } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { CircleUser, Menu, Coins, Github, Star } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getGitHubStats } from "@/lib/github";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +50,17 @@ export function AppHeader({
   const { data } = authClient.useSession();
   const session = data ?? initialSession;
   const router = useRouter();
+  const [stars, setStars] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const stats = await getGitHubStats("ntgussoni", "clashofapps");
+      if (stats) {
+        setStars(stats.stargazers_count);
+      }
+    };
+    void fetchStats();
+  }, []);
 
   // Use tRPC query for credits
   const { data: credits, isLoading } = api.credits.getMyCredits.useQuery(
@@ -79,6 +92,33 @@ export function AppHeader({
     // { name: "Browse Apps", href: "/google-play/apps" },
     // { name: "New Comparison", href: "/new-analysis" },
   ];
+
+  const GitHubButton = () => (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href="https://github.com/ntgussoni/clashofapps"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-500/20 dark:text-orange-400"
+          >
+            <Github className="h-4 w-4" />
+            <span>Star on GitHub</span>
+            {stars !== null && (
+              <span className="flex items-center gap-1 rounded-full bg-orange-500/20 px-2 py-0.5 text-xs font-semibold">
+                <Star className="h-3 w-3" />
+                {stars.toLocaleString()}
+              </span>
+            )}
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Star us on GitHub!</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 
   return (
     <header
@@ -130,6 +170,8 @@ export function AppHeader({
               ))}
             </>
           )}
+
+          <GitHubButton />
         </nav>
 
         {/* Auth Buttons */}
@@ -245,6 +287,7 @@ export function AppHeader({
                           {item.name}
                         </Link>
                       ))}
+                      <GitHubButton />
                       <div className="py-2 text-sm font-medium">
                         {session.user?.name || session.user?.email}
                       </div>
@@ -267,6 +310,7 @@ export function AppHeader({
                           {item.name}
                         </Link>
                       ))}
+                      <GitHubButton />
                       <Button
                         variant="ghost"
                         className="justify-start text-sm font-medium hover:text-primary"

@@ -11,7 +11,6 @@
 # database
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
-db.sqlite
 
 # next.js
 /.next/
@@ -24,6 +23,11 @@ next-env.d.ts
 # misc
 .DS_Store
 *.pem
+.env
+.env*.local
+.env.production
+.env.development
+.env.test
 
 # debug
 npm-debug.log*
@@ -33,7 +37,6 @@ yarn-error.log*
 
 # local env files
 # do not commit any .env files to git, except for the .env.example file. https://create.t3.gg/en/usage/env-variables#using-environment-variables
-.env
 .env*.local
 
 # vercel
@@ -42,7 +45,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# idea files
-.idea
-# Sentry Config File
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sentry
+.sentryclirc
 .env.sentry-build-plugin
+
+# Logs
+logs
+*.log
+
+# System Files
+.DS_Store
+Thumbs.db

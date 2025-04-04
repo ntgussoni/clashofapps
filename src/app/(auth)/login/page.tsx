@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MailIcon } from "lucide-react";
+import { MailIcon, KeyIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { authClient } from "@/lib/auth-client";
 import { AuthHeader } from "@/components/auth-header";
@@ -16,23 +16,51 @@ function LoginContent() {
   const referrer = searchParams.get("referrer");
   const [showAlert, setShowAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { data: session } = authClient.useSession();
 
   if (session) {
     redirect("/");
   }
 
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const submitMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const email = formData.get("email") as string;
     setIsLoading(true);
-    await authClient.signIn.magicLink({
-      email,
-      callbackURL: referrer ?? "/",
-    });
-    setShowAlert(true);
-    setIsLoading(false);
+    setError(null);
+    try {
+      await authClient.signIn.magicLink({
+        email,
+        callbackURL: referrer ?? "/",
+      });
+      setShowAlert(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to send magic link",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const email = formData.get("email-pwd") as string;
+    const password = formData.get("password") as string;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: referrer ?? "/",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sign in");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,8 +84,13 @@ function LoginContent() {
                 </AlertDescription>
               </Alert>
             )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-4">
-              <form id="sign-in-form" onSubmit={submit}>
+              <form id="magic-link-form" onSubmit={submitMagicLink}>
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -69,9 +102,63 @@ function LoginContent() {
               </form>
             </div>
 
-            <Button type="submit" className="w-full" form="sign-in-form">
-              Send magic link
+            <Button
+              type="submit"
+              className="w-full"
+              form="magic-link-form"
+              disabled={isLoading}
+            >
+              {isLoading ? "Sending..." : "Send magic link"}
             </Button>
+
+            {process.env.NODE_ENV === "development" && (
+              <>
+                <div className="flex items-center gap-2 pt-4">
+                  <hr className="flex-1 border-b border-foreground" />
+                  <p className="text-sm text-foreground">
+                    Or use email/password (dev only)
+                  </p>
+                  <hr className="flex-1 border-b border-foreground" />
+                </div>
+
+                <form
+                  id="password-form"
+                  onSubmit={submitPassword}
+                  className="space-y-4"
+                >
+                  <div>
+                    <Label htmlFor="email-pwd">Email</Label>
+                    <Input
+                      id="email-pwd"
+                      name="email-pwd"
+                      type="email"
+                      placeholder="m@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading}
+                    variant="outline"
+                  >
+                    <KeyIcon className="mr-2 h-4 w-4" />
+                    {isLoading ? "Signing in..." : "Sign in with password"}
+                  </Button>
+                </form>
+              </>
+            )}
+
             <div className="space-y-2">
               <p className="text-sm text-secondary-foreground">
                 Click the magic link we email you to sign in. If you don&apos;t
@@ -79,20 +166,7 @@ function LoginContent() {
                 spam, social, or other folders.
               </p>
             </div>
-            {/* <div className="flex items-center gap-2">
-              <hr className="flex-1 border-b border-foreground" />
-              <p className="text-sm text-foreground">
-                Or use one of the following
-              </p>
-              <hr className="flex-1 border-b border-foreground" />
-            </div> */}
           </div>
-          {/* <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="#" className="underline">
-              Sign up
-            </Link>
-          </div> */}
         </div>
       </div>
       <div className="relative hidden h-dvh w-full lg:flex">

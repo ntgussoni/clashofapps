@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "db:prisma-deploy": "npx prisma migrate deploy",
     "db:prisma-generate": "npx prisma generate",
+    "db:seed-admin": "npx tsx scripts/seed-admin.ts",
     "dev": "next dev",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
@@ -66,6 +67,7 @@
     "langfuse-vercel": "^3.36.0",
     "lucide-react": "^0.477.0",
     "next": "^15.2.3",
+    "next-themes": "^0.4.6",
     "patch-package": "^8.0.0",
     "pg": "^8.13.3",
     "react": "^18.3.1",
@@ -85,6 +87,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@clack/prompts": "^0.10.0",
     "@types/eslint": "^8.56.10",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
@@ -93,11 +96,13 @@
     "@typescript-eslint/parser": "^8.1.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.0.1",
+    "picocolors": "^1.1.1",
     "postcss": "^8.5.3",
     "prettier": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.5",
     "prisma": "^5.14.0",
     "tailwindcss": "^3.4.3",
+    "tsx": "^4.19.3",
     "typescript": "^5.5.3"
   },
   "ct3aMetadata": {

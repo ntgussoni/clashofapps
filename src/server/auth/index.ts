@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, createAuthMiddleware, magicLink } from "better-auth/plugins";
 import { sendMagicLink } from "../emails/send-magic-link";
 import * as Sentry from "@sentry/nextjs";
+
 export const auth = betterAuth({
   trustedOrigins: ["https://www.clashofapps.com", "https://clashofapps.com"],
   baseURL:
@@ -14,11 +15,20 @@ export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: "postgresql", // or "mysql", "postgresql", ...etc
   }),
+  emailAndPassword: {
+    enabled: process.env.NODE_ENV !== "production",
+    // Optional: Development-only password reset handler
+    sendResetPassword: async ({ user, url, token }, request) => {
+      console.log("Development mode - Password reset link:", url);
+      // In development, just log the reset link
+      console.log(`Reset password token for ${user.email}: ${token}`);
+    },
+  },
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
-      if (ctx.context.newSession?.user) {
+      if (ctx.context.newSession?.user && Sentry.setUser) {
         Sentry.setUser({ id: ctx.context.newSession.user.id });
-      } else {
+      } else if (Sentry.setUser) {
         Sentry.setUser(null);
       }
     }),

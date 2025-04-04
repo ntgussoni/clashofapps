@@ -35,10 +35,10 @@ export default async function AdminLayout({
 
   return (
     <>
-      <div className="container mx-auto px-4 py-6">
+      <div className="relative flex min-h-screen flex-col">
         <AppHeader initialSession={session} />
+        <main className="mt-16 flex-1">{children}</main>
       </div>
-      <main className="flex-1">{children}</main>
     </>
   );
 }
