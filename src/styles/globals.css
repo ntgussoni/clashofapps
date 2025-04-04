@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * White Label Theme Configuration
+ * 
+ * These CSS variables control the visual appearance of the site.
+ * For dynamic updates at runtime, use the applyThemeFromConfig() function
+ * from src/lib/theme-utils.ts
+ * 
+ * To customize the theme, either:
+ * 1. Edit the siteConfig.theme object in src/lib/config.ts
+ * 2. Or modify these CSS variables directly
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Responsive typography */
+@layer utilities {
+  /* Glass morphism effects */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md;
+  }
+
+  .glass-border {
+    @apply border border-white/10;
+  }
+
+  .glass-card {
+    @apply rounded-lg border border-white/10 bg-background/60 shadow-xl backdrop-blur-lg;
+  }
+
+  .glass-navbar {
+    @apply border-b border-white/10 bg-background/70 backdrop-blur-md;
+  }
+
+  /* Gradient elements */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(var(--primary), 0.4),
+      transparent
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Responsive typography classes */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  /* Responsive spacing */
+  .p-responsive {
+    @apply p-2 sm:p-4 md:p-6;
+  }
+
+  .px-responsive {
+    @apply px-2 sm:px-4 md:px-6;
+  }
+
+  .py-responsive {
+    @apply py-2 sm:py-4 md:py-6;
+  }
+
+  .m-responsive {
+    @apply m-2 sm:m-4 md:m-6;
+  }
+
+  .mx-responsive {
+    @apply mx-2 sm:mx-4 md:mx-6;
+  }
+
+  .my-responsive {
+    @apply my-2 sm:my-4 md:my-6;
+  }
+
+  .gap-responsive {
+    @apply gap-2 sm:gap-4 md:gap-6;
+  }
+
+  /* Responsive container */
+  .container-responsive {
+    @apply mx-auto w-full px-4 sm:px-6 md:px-8;
+    max-width: 100%;
+  }
+
+  @screen sm {
+    .container-responsive {
+      max-width: 640px;
+    }
+  }
+
+  @screen md {
+    .container-responsive {
+      max-width: 768px;
+    }
+  }
+
+  @screen lg {
+    .container-responsive {
+      max-width: 1024px;
+    }
+  }
+
+  @screen xl {
+    .container-responsive {
+      max-width: 1280px;
+    }
+  }
+
+  /* Improved touch targets for mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* Prevent content from being hidden under fixed headers */
+html {
+  scroll-padding-top: 5rem;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent layout shifts from scrollbars */
+html {
+  overflow-y: scroll;
+}
+
+/* Improved media query for dark mode preference */
+@media (prefers-color-scheme: dark) {
+  html.dark-mode-auto {
+    @apply dark;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Improved focus visible styles */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

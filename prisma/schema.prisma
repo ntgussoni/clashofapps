@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+  // Further reading:
+  // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+  // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  analyses      Analysis[]
+
+  role       String?
+  banned     Boolean?
+  banReason  String?
+  banExpires DateTime?
+
+  credits Int @default(10) // Default 10 credits for new users
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  impersonatedBy String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+// New models for app analysis system
+
+// Raw app data from Google Play
+model App {
+  id         Int    @id @default(autoincrement())
+  appStoreId String @unique // Google Play app ID (e.g., com.example.app)
+
+  // Core app metadata
+  name        String
+  icon        String
+  developer   String
+  categories  Json // Array of categories
+  description String @db.Text
+
+  // Stats and ratings
+  score     Float?
+  ratings   Int?
+  reviews   Int?
+  histogram Json? // { "1": n, "2": n, "3": n, "4": n, "5": n }
+  installs  String?
+  version   String?
+
+  // Complete raw data
+  rawData Json // Complete IAppItemFullDetail as JSON
+
+  // Tracking fields
+  lastFetched DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  appReviews        AppReview[]
+  analysisData      AppAnalysisData? @relation(fields: [appAnalysisDataId], references: [id])
+  analysisApps      AnalysisApp[]
+  appAnalysisDataId Int?             @unique
+  ComparisonData    ComparisonData[]
+}
+
+// Reviews for an app
+model AppReview {
+  id       Int    @id @default(autoincrement())
+  reviewId String // Original review ID from Google Play
+
+  // Review content
+  userName  String
+  userImage String?
+  date      String
+  score     Int
+  title     String?
+  text      String  @db.Text
+  thumbsUp  Int?
+  version   String?
+
+  // Raw data storage
+  rawData Json // Complete IReviewsItem as JSON
+
+  // Relationships
+  appId Int
+  app   App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([appId, reviewId])
+  @@index([appId])
+}
+
+// User-created analyses
+model Analysis {
+  id   Int    @id @default(autoincrement())
+  slug String @unique // Unique slug for sharing analyses
+
+  // Analysis metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User relationship
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Analysis apps and results
+  analysisApps AnalysisApp[]
+  comparison   ComparisonData?
+
+  // Analysis configuration
+  analysisDepth String @default("detailed")
+  reviewSample  Int    @default(50)
+
+  @@index([userId])
+}
+
+// Junction table for Analysis to App relationship
+model AnalysisApp {
+  id Int @id @default(autoincrement())
+
+  // References
+  analysisId Int
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  appId      Int?
+  app        App?     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  appStoreId String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([analysisId, appId])
+  @@index([analysisId])
+  @@index([appId])
+}
+
+// Single app analysis results
+model AppAnalysisData {
+  id Int @id @default(autoincrement())
+
+  // Core analysis results (matches AnalysisResultsData)
+  strengths         Json // String array
+  weaknesses        Json // String array
+  opportunities     Json // String array
+  marketPosition    String @db.Text
+  targetDemographic String @db.Text
+  threats           Json // String array
+  keyFeatures       Json // Array of feature objects matching AppAnalysis.keyFeatures structure
+  pricing           Json // Pricing object with valueForMoney, complaints, willingness
+  recommendations   Json // Array of recommendation objects
+
+  // Review reference data for traceability
+  strengthsReviewMap  Json? // Map of strength titles to review IDs
+  weaknessesReviewMap Json? // Map of weakness titles to review IDs
+  sentimentReviewMap  Json? // Map of sentiment categories to review IDs
+  featuresReviewMap   Json? // Map of feature names to review IDs
+
+  // Complete raw analysis
+  rawAnalysis Json // Complete analysis JSON
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  App App?
+}
+
+// Comparison analysis results
+model ComparisonData {
+  id Int @id @default(autoincrement())
+
+  // Reference to the main analysis
+  analysisId Int      @unique
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  apps       App[]
+
+  featureComparison        Json // Feature comparison data
+  marketPositionComparison Json // Market positions
+  pricingComparison        Json // Pricing comparison
+  userBaseComparison       Json // User demographics comparison
+  recommendationSummary    Json // Array of recommendations
+  reviews                  Json // Reviews comparison
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
