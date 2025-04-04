@@ -87,7 +87,6 @@ Visit `http://localhost:3000` to see your app!
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [Shadcn/ui](https://ui.shadcn.com/)
 - **State Management**: [TanStack Query](https://tanstack.com/query)
 - **API Layer**: [tRPC](https://trpc.io/)
-- **Deployment**: [Vercel](https://vercel.com)
 
 ## 📦 Project Structure
 
