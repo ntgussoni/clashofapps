@@ -5,4 +5,4 @@
 
 */
 -- AlterTable
-ALTER TABLE "user" ADD COLUMN     "password" TEXT NOT NULL;
+ALTER TABLE "user" ADD COLUMN     "password" TEXT NOT NULL DEFAULT '123456';
