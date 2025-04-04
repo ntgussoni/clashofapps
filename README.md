@@ -37,6 +37,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 - Node.js 18+ or Bun
 - PostgreSQL database
 - npm
+- OpenAI API KEY
 
 ### Installation
 
