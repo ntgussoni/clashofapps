@@ -2,7 +2,6 @@
 
 <img width="1400" alt="image" src="https://github.com/user-attachments/assets/ad25b6f0-0bff-47d9-9241-d5088668e1ec" />
 
-
 Track & Analyze Your App Competitors with ease. An open-source competitor tracking platform built with modern technologies.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -11,14 +10,25 @@ Track & Analyze Your App Competitors with ease. An open-source competitor tracki
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 
+## Overview
+
+Clash of Apps helps you understand your competition in the app stores through data-driven insights. Compare app store listings, analyze reviews, and track market positions across both the App Store and Google Play Store.
+
 ## 🌟 Features
 
-- **App Competitor Tracking**: Monitor your competitors' app performance
-- **Analytics Dashboard**: Beautiful, intuitive analytics interface
-- **Real-time Updates**: Stay up-to-date with competitor changes
-- **Secure Authentication**: Built with Better Auth for robust security
-- **Modern UI/UX**: Crafted with Tailwind CSS and Shadcn components
-- **Fully Typed**: End-to-end type safety with TypeScript
+### Available Now
+
+- **App Comparison**: Side-by-side analysis of app store listings, reviews, and ratings
+- **Review Analysis**: AI-powered sentiment analysis of competitor reviews
+- **Analytics Dashboard**: Clean, intuitive interface for viewing insights
+- **Cross-Platform**: Support for both iOS and Android apps
+
+### Coming Soon
+
+- **Real-time Tracking**: Monitoring of competitor changes and updates
+- **Custom Alerts**: Notifications for important competitor changes
+- **Historical Data**: Track changes over time
+- **Automated Reports**: Scheduled competitor analysis reports
 
 ## 🚀 Quick Start
 
@@ -123,8 +133,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [T3 Stack](https://create.t3.gg/)
 - [Better Auth](https://better-auth.com/)
 - [Shadcn/ui](https://ui.shadcn.com/)
-- All our amazing contributors!
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ---
 
-Built with ❤️ by [Your Name/Team]
+Built with ❤️ by https://x.com/ntorresdev
