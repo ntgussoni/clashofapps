@@ -6,6 +6,9 @@ import { type Metadata, type Viewport } from "next";
 import { TRPCReactProvider } from "@/trpc/react";
 import { siteConfig } from "@/lib/config";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import { env } from "@/env";
+
+const GA_MEASUREMENT_ID = env.GOOGLE_ANALYTICS_ID;
 
 export const metadata: Metadata = {
   title: {
@@ -60,7 +63,9 @@ export default function RootLayout({
           {children}
           {/* Footer is shown on all pages except auth pages */}
         </TRPCReactProvider>
-        <GoogleAnalytics GA_MEASUREMENT_ID="G-H6YND53W1B" />
+        {GA_MEASUREMENT_ID && (
+          <GoogleAnalytics GA_MEASUREMENT_ID={GA_MEASUREMENT_ID} />
+        )}
       </body>
     </html>
   );
