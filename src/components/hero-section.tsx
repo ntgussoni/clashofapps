@@ -83,39 +83,6 @@ export function HeroSection() {
         <div className="z-10 h-full w-full before:absolute before:inset-0 before:size-full before:bg-[radial-gradient(circle_at_center,_rgba(255,255,255,.6)_5%,_rgba(255,255,255,1)_60%)] before:content-['']" />
       </div>
 
-      {/* Animated Background Elements */}
-      {isClient && (
-        <>
-          <motion.div
-            className="absolute left-1/4 top-1/4 h-64 w-64 rounded-full bg-blue-500/5 blur-3xl"
-            animate={{
-              x: [0, 30, 0],
-              y: [0, -30, 0],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-cyan-500/5 blur-3xl"
-            animate={{
-              x: [0, -40, 0],
-              y: [0, 40, 0],
-              opacity: [0.2, 0.4, 0.2],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1,
-            }}
-          />
-        </>
-      )}
-
       {/* Hero Content */}
       <div className="relative z-10 flex flex-1 items-center">
         <div className="container mx-auto px-4 py-12 sm:py-16 md:py-24">

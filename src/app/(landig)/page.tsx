@@ -6,7 +6,7 @@ export default async function Home() {
     <HydrateClient>
       <LandingPage />
       <a
-        className="fixed bottom-0 right-0 mb-4 mr-4"
+        className="fixed bottom-0 left-0 z-50 mb-4 ml-4"
         href="https://www.producthunt.com/posts/clash-of-apps?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-clash&#0045;of&#0045;apps"
         target="_blank"
       >
