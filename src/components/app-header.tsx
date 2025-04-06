@@ -75,7 +75,7 @@ export function AppHeader({
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    router.refresh();
+    router.push("/");
   };
 
   const navigation: { name: string; href: string }[] = [
