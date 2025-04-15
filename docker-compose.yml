@@ -1,0 +1,44 @@
+# Based on https://www.prisma.io/docs/guides/docker#2-set-up-a-postgresql-database-with-docker-compose
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=clashuser
+      - POSTGRES_PASSWORD=clashpass
+      - POSTGRES_DB=clashdb
+    ports:
+      - "5432:5432"
+    networks:
+      - prisma-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U clashuser -d clashdb" ]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+    command: postgres -c listen_addresses='*'
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+networks:
+  prisma-network:
+
+
+volumes:
+  postgres_data:
+
+    # app:
+    #   build: .
+    #   depends_on:
+    #     - db
+    #   env_file:
+    #     - .env
+    #   ports:
+    #     - "3000:3000"
+    #   volumes:
+    #     - .:/app
+    #   command: npm start

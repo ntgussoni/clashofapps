@@ -15,7 +15,7 @@
     "db:studio": "prisma studio",
     "db:prisma-deploy": "npx prisma migrate deploy",
     "db:prisma-generate": "npx prisma generate",
-    "db:seed-admin": "npx tsx scripts/seed-admin.ts",
+    "db:seed-admin": "npx tsx src/scripts/seed-admin.ts",
     "dev": "next dev",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
