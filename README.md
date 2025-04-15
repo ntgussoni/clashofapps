@@ -2,7 +2,6 @@
 
 https://github.com/user-attachments/assets/f7d3368c-eab0-4b95-99fe-8b88a4f26968
 
-
 Track & Analyze Your App Competitors.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -34,7 +33,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 
 ### Prerequisites
 
-- Node.js 18+ or Bun
+- Node.js 20+ or Bun
 - PostgreSQL database
 - npm
 - OpenAI API KEY
@@ -65,7 +64,7 @@ Clash of Apps helps you understand your competition in the app stores through da
 4. Initialize the database:
 
    ```bash
-   npm db:push
+   npm run db:push
    ```
 
 5. Create an admin user:
