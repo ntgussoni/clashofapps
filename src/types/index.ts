@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type * as Gplay from "google-play-scraper";
-import type { JSONValue } from "ai";
 import type { App } from "@prisma/client";
 
 // Import schemas from their source files
@@ -8,9 +7,15 @@ import { type sentimentSchema } from "./sentiment-schema";
 import { type reviewInsightSchema } from "./review-schema";
 import { type competitorAnalysisSchema } from "@/app/api/chat/analysisSchemas";
 
+// Import App Store types
+import type {
+  AppStoreAppInfo as ImportedAppStoreAppInfo,
+  AppStoreReview as ImportedAppStoreReview,
+} from "@/server/review-analyzer/services/appStoreDataFetcher";
+
 // Schema-based types
+export type ReviewInsight = z.infer<typeof reviewInsightSchema>;
 export type SentimentType = z.infer<typeof sentimentSchema>;
-export type ReviewInsightType = z.infer<typeof reviewInsightSchema>;
 export type CompetitorAnalysis = z.infer<typeof competitorAnalysisSchema>;
 
 // ----------------------------------------------------------------------
@@ -21,11 +26,63 @@ export type Review = Gplay.IReviewsItem;
 export type AppInfo = Gplay.IAppItemFullDetail;
 
 // ----------------------------------------------------------------------
+// App Store Types
+// ----------------------------------------------------------------------
+
+export type AppStoreReview = ImportedAppStoreReview;
+export type AppStoreAppInfo = ImportedAppStoreAppInfo;
+
+// ----------------------------------------------------------------------
+// Platform-agnostic types
+// ----------------------------------------------------------------------
+
+export type Platform = "GOOGLE_PLAY" | "APP_STORE";
+
+// Unified app info type that works for both stores
+export interface UnifiedAppInfo {
+  id: string | number;
+  name: string;
+  icon: string;
+  developer: string;
+  categories: Array<{ name: string; id: string | null }>;
+  description: string;
+  score?: number;
+  ratings?: number;
+  reviews?: number;
+  histogram?: {
+    "1": number;
+    "2": number;
+    "3": number;
+    "4": number;
+    "5": number;
+  };
+  installs?: string;
+  version?: string;
+  platform: Platform;
+  rawData: unknown;
+}
+
+// Unified review type that works for both stores
+export interface UnifiedReview {
+  id: string;
+  userName: string;
+  userImage?: string;
+  date: string;
+  score: number;
+  title?: string;
+  text: string;
+  thumbsUp?: number;
+  version?: string;
+  platform: Platform;
+  rawData: unknown;
+}
+
+// ----------------------------------------------------------------------
 // Core App and Data Stream Types
 // ----------------------------------------------------------------------
 
 export interface DataStream {
-  writeData: (data: JSONValue) => void;
+  writeData: (data: string) => void;
 }
 
 export interface AppData {
@@ -89,7 +146,6 @@ export interface FeatureComparisonItem {
   averageSentiment: number;
   totalMentions: number;
   presentInApps: string[];
-  appMentions?: Record<string, number>;
 }
 
 // ----------------------------------------------------------------------
@@ -136,63 +192,47 @@ export interface AnalysisResultsData {
   type: "analysis_results";
   appId: number;
   appName: string;
-  strengths: {
-    description: string;
-    title: string;
-    reviewIds: number[];
-  }[];
-  weaknesses: {
-    description: string;
-    title: string;
-    reviewIds: number[];
-  }[];
+  strengths: string[];
+  weaknesses: string[];
   opportunities: string[];
   marketPosition: string;
   targetDemographic: string;
   threats: string[];
-  keyFeatures: {
-    feature: string;
-    sentiment: "positive" | "negative" | "neutral" | "mixed";
-    description: string;
-    reviewIds: number[];
-  }[];
+  keyFeatures: Array<{
+    name: string;
+    frequency: number;
+    sentiment: "positive" | "negative" | "neutral";
+    examples: string[];
+  }>;
   pricing: {
-    valueForMoney: string;
-    pricingComplaints: number;
-    willingness: string;
-    reviewIds: number[];
+    valueForMoney: "high" | "medium" | "low";
+    complaints: string[];
+    willingness: "high" | "medium" | "low";
   };
-  recommendations: {
-    action: string;
-    priority: string;
-    impact: string;
-  }[];
-  reviewMappings?: {
-    strengthsReviewMap?: Record<string, string[] | number[]>;
-    weaknessesReviewMap?: Record<string, string[] | number[]>;
-    sentimentReviewMap?: Record<string, string[] | number[]>;
-    featuresReviewMap?: Record<string, string[] | number[]>;
-  };
+  recommendations: Array<{
+    title: string;
+    description: string;
+    priority: "high" | "medium" | "low";
+    category: "feature" | "ux" | "performance" | "marketing" | "pricing";
+  }>;
 }
 
 export interface AppAnalysisResult {
   appInfo: App;
-  analysis: AppAnalysis;
-  analysisResults: AnalysisResultsData;
+  analysis: AnalysisResultsData;
 }
 
 export interface ComparisonData {
-  type: "comparison_results";
-  apps: {
+  apps: Array<{
     appName: string;
     appId: number;
     rating: string;
     ratingCount: number;
-  }[];
+  }>;
   featureComparison: FeatureComparisonItem[];
-  marketPositionComparison: { appName: string; marketPosition: string }[];
+  marketPositionComparison: MarketPositionComparisonItem[];
   pricingComparison: PricingComparisonItem[];
-  userBaseComparison: { appName: string; demographics: string }[];
+  userBaseComparison: UserBaseComparisonItem[];
   recommendationSummary: string[];
   reviews: {
     feature: Record<string, Record<string, number[]>>;
@@ -200,13 +240,31 @@ export interface ComparisonData {
   };
 }
 
-export interface ComparisonResultsData {
-  apps: AppData[];
-  featureComparison: FeatureComparisonItem[];
-  pricingComparison: PricingComparisonItem[];
-  marketPositionComparison: { appName: string; marketPosition: string }[];
-  userBaseComparison: { appName: string; demographics: string }[];
-  recommendationSummary: string[];
+export interface MarketPositionComparisonItem {
+  appName: string;
+  marketPosition: string;
+}
+
+export interface UserBaseComparisonItem {
+  appName: string;
+  demographics: string;
+}
+
+export interface ReviewsComparisonItem {
+  appId: string;
+  name: string;
+  totalReviews: number;
+  averageRating: number;
+  sentimentBreakdown: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+  topKeywords: Array<{
+    keyword: string;
+    frequency: number;
+    sentiment: "positive" | "negative" | "neutral";
+  }>;
 }
 
 // ----------------------------------------------------------------------
@@ -216,51 +274,29 @@ export interface ComparisonResultsData {
 // Define a more complete AppAnalysis type to match the schema
 export interface AppAnalysis {
   appName: string;
-  strengths: {
-    description: string;
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
+  marketPosition: string;
+  targetDemographic: string;
+  threats: string[];
+  keyFeatures: Array<{
+    name: string;
+    frequency: number;
+    sentiment: "positive" | "negative" | "neutral";
+    examples: string[];
+  }>;
+  pricing: {
+    valueForMoney: "high" | "medium" | "low";
+    complaints: string[];
+    willingness: "high" | "medium" | "low";
+  };
+  recommendations: Array<{
     title: string;
-    reviewIds: number[];
-  }[];
-  weaknesses: {
     description: string;
-    title: string;
-    reviewIds: number[];
-  }[];
-  sentiment: {
-    neutral: string[];
-    overall: string;
-    positive: string[];
-    negative: string[];
-    mixed: string[];
-    reviewMap: Record<string, number[]>;
-  };
-  keyFeatures: {
-    feature: string;
-    sentiment: "positive" | "negative" | "neutral" | "mixed";
-    description: string;
-    reviewIds: number[];
-  }[];
-  overview: {
-    strengths: string[];
-    weaknesses: string[];
-    opportunities: string[];
-    threats: string[];
-    marketPosition: string;
-    targetDemographic: string;
-  };
-  pricingPerception: {
-    valueForMoney: number;
-    pricingComplaints: number;
-    willingness: string;
-    reviewIds: number[];
-  };
-  recommendedActions: {
-    action: string;
-    priority: string;
-    impact: string;
-    timeframe?: string;
-    targetSegment?: string;
-  }[];
+    priority: "high" | "medium" | "low";
+    category: "feature" | "ux" | "performance" | "marketing" | "pricing";
+  }>;
 }
 
 // Action plan and recommendation schemas

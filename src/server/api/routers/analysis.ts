@@ -3,6 +3,17 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { TRPCError } from "@trpc/server";
 import { generateAnalysisSlug } from "@/utils/slug";
+import { type Platform } from "@/types";
+
+// Helper function to detect platform from app ID
+function detectPlatform(appId: string): Platform {
+  // App Store IDs are numeric
+  if (/^\d+$/.test(appId)) {
+    return "APP_STORE";
+  }
+  // Google Play IDs are typically reverse domain notation
+  return "GOOGLE_PLAY";
+}
 
 export const analysisRouter = createTRPCRouter({
   // Create a new analysis from app links
@@ -41,9 +52,16 @@ export const analysisRouter = createTRPCRouter({
 
         // Process each app ID
         for (const appStoreId of appStoreIds) {
+          const platform = detectPlatform(appStoreId);
+
           // Check if the app already exists in the database
           const app = await tx.app.findUnique({
-            where: { appStoreId },
+            where: {
+              appStoreId_platform: {
+                appStoreId,
+                platform,
+              },
+            },
           });
 
           // If the app doesn't exist, create it with minimal data
@@ -54,6 +72,7 @@ export const analysisRouter = createTRPCRouter({
               data: {
                 analysisId: analysis.id,
                 appStoreId,
+                platform,
               },
             });
           } else {
@@ -63,6 +82,7 @@ export const analysisRouter = createTRPCRouter({
                 analysisId: analysis.id,
                 appId: app.id,
                 appStoreId,
+                platform,
               },
             });
           }
