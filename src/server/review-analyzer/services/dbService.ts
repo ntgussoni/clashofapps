@@ -7,21 +7,30 @@ import {
   type ComparisonData,
   type PricingComparisonItem,
   type FeatureComparisonItem,
+  type UnifiedAppInfo,
+  type UnifiedReview,
+  type Platform,
 } from "@/types";
 import { type App, type Prisma } from "@prisma/client";
 
 /**
  * Get app data from database or return null if not found or expired
- * @param appId
- * @param maxAgeDays
- * @returns
+ * @param appStoreId - The app store ID
+ * @param platform - The platform (GOOGLE_PLAY or APP_STORE)
+ * @param maxAgeDays - Maximum age in days before data is considered stale
+ * @returns App data with reviews or null
  */
-export async function getAppFromDb(appStoreId: string, maxAgeDays = 30) {
+export async function getAppFromDb(
+  appStoreId: string, 
+  platform: Platform,
+  maxAgeDays = 30
+) {
   // Check if app exists in database and is fresh (less than specified days old)
   try {
     const existingApp = await db.app.findFirst({
       where: {
         appStoreId,
+        platform,
         lastFetched: {
           gte: new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000),
         },
@@ -46,24 +55,30 @@ export async function getAppFromDb(appStoreId: string, maxAgeDays = 30) {
 }
 
 /**
- * Store app data in the database
- * @param appInfo
+ * Store unified app data in the database
+ * @param analysisAppId - The analysis app ID to link to
+ * @param appInfo - Unified app info
+ * @param reviews - Unified reviews
+ * @returns Promise that resolves when data is stored
  */
 export async function storeAppData(
   analysisAppId: number,
-  appInfo: AppInfo,
-  reviews: Review[],
+  appInfo: UnifiedAppInfo,
+  reviews: UnifiedReview[],
 ): Promise<void> {
   try {
     // Store or update app data
     const record = await db.app.upsert({
       where: {
-        appStoreId: appInfo.appId,
+        appStoreId_platform: {
+          appStoreId: appInfo.id.toString(),
+          platform: appInfo.platform,
+        },
       },
       update: {
-        name: appInfo.title,
+        name: appInfo.name,
         icon: appInfo.icon,
-        developer: appInfo.developer || "",
+        developer: appInfo.developer,
         categories: appInfo.categories as Prisma.InputJsonValue,
         description: appInfo.description,
         score: appInfo.score,
@@ -72,14 +87,15 @@ export async function storeAppData(
         histogram: appInfo.histogram ?? ({} as Prisma.InputJsonValue),
         installs: appInfo.installs,
         version: appInfo.version,
-        rawData: appInfo as unknown as Prisma.InputJsonValue,
+        rawData: appInfo.rawData as Prisma.InputJsonValue,
         lastFetched: new Date(),
       },
       create: {
-        appStoreId: appInfo.appId,
-        name: appInfo.title,
+        appStoreId: appInfo.id.toString(),
+        platform: appInfo.platform,
+        name: appInfo.name,
         icon: appInfo.icon,
-        developer: appInfo.developer || "",
+        developer: appInfo.developer,
         categories: appInfo.categories as Prisma.InputJsonValue,
         description: appInfo.description,
         score: appInfo.score,
@@ -88,11 +104,11 @@ export async function storeAppData(
         histogram: appInfo.histogram ?? ({} as Prisma.InputJsonValue),
         installs: appInfo.installs,
         version: appInfo.version,
-        rawData: appInfo as unknown as Prisma.InputJsonValue,
+        rawData: appInfo.rawData as Prisma.InputJsonValue,
       },
     });
 
-    // we need to connect it to the appAnalysis
+    // Connect it to the analysis
     await db.analysisApp.findFirstOrThrow({
       where: {
         id: analysisAppId,
@@ -101,7 +117,10 @@ export async function storeAppData(
 
     await db.analysisApp.update({
       where: { id: analysisAppId },
-      data: { appId: record.id },
+      data: { 
+        appId: record.id,
+        platform: appInfo.platform,
+      },
     });
 
     // Store reviews
@@ -113,41 +132,34 @@ export async function storeAppData(
 }
 
 /**
- * Store app reviews in the database
- * @param appId
- * @param reviews
+ * Store unified reviews for an app
+ * @param appId - The app database ID
+ * @param reviews - Array of unified reviews
+ * @returns Promise that resolves when reviews are stored
  */
-export async function storeAppReviews(
-  appId: number,
-  reviews: Review[],
-): Promise<void> {
+async function storeAppReviews(appId: number, reviews: UnifiedReview[]): Promise<void> {
   try {
-    // Delete existing reviews to replace with new ones
+    // Clear existing reviews for this app
     await db.appReview.deleteMany({
       where: { appId },
     });
 
-    // Create all reviews in bulk
-    const reviewData = reviews.map((review) => ({
-      appId,
-      reviewId: review.id,
-      userName: review.userName,
-      userImage: review.userImage ?? "",
-      date: review.date,
-      score: review.score,
-      title: review.title ?? "",
-      text: review.text,
-      thumbsUp: review.thumbsUp ?? 0,
-      version: review.version ?? "",
-      rawData: review as unknown as Prisma.InputJsonValue,
-    }));
-
-    // Insert in batches to avoid overloading the database
-    const batchSize = 100;
-    for (let i = 0; i < reviewData.length; i += batchSize) {
-      const batch = reviewData.slice(i, i + batchSize);
+    // Store new reviews
+    if (reviews.length > 0) {
       await db.appReview.createMany({
-        data: batch,
+        data: reviews.map((review) => ({
+          appId,
+          reviewId: review.id,
+          userName: review.userName,
+          userImage: review.userImage,
+          date: review.date,
+          score: review.score,
+          title: review.title,
+          text: review.text,
+          thumbsUp: review.thumbsUp,
+          version: review.version,
+          rawData: review.rawData as Prisma.InputJsonValue,
+        })),
         skipDuplicates: true,
       });
     }
@@ -708,4 +720,63 @@ export async function getComparisonResultsFromDb(
     console.error("Error retrieving comparison results:", error);
     return null;
   }
+}
+
+// Legacy functions for backward compatibility
+
+/**
+ * Legacy function: Get Google Play app from database
+ * @param appStoreId - Google Play app ID
+ * @param maxAgeDays - Maximum age in days
+ * @returns App data or null
+ */
+export async function getGooglePlayAppFromDb(appStoreId: string, maxAgeDays = 30) {
+  return getAppFromDb(appStoreId, "GOOGLE_PLAY", maxAgeDays);
+}
+
+/**
+ * Legacy function: Store Google Play app data
+ * @param analysisAppId - Analysis app ID
+ * @param appInfo - Google Play app info
+ * @param reviews - Google Play reviews
+ * @returns Promise
+ */
+export async function storeGooglePlayAppData(
+  analysisAppId: number,
+  appInfo: any, // Using any for legacy compatibility
+  reviews: any[], // Using any for legacy compatibility
+): Promise<void> {
+  // Convert legacy format to unified format
+  const unifiedAppInfo: UnifiedAppInfo = {
+    id: appInfo.appId,
+    name: appInfo.title,
+    icon: appInfo.icon,
+    developer: appInfo.developer || "",
+    categories: appInfo.categories || [],
+    description: appInfo.description,
+    score: appInfo.score,
+    ratings: appInfo.ratings,
+    reviews: appInfo.reviews,
+    histogram: appInfo.histogram,
+    installs: appInfo.installs,
+    version: appInfo.version,
+    platform: "GOOGLE_PLAY",
+    rawData: appInfo,
+  };
+
+  const unifiedReviews: UnifiedReview[] = reviews.map((review) => ({
+    id: review.id,
+    userName: review.userName,
+    userImage: review.userImage,
+    date: review.date,
+    score: review.score,
+    title: review.title,
+    text: review.text,
+    thumbsUp: review.thumbsUp,
+    version: review.version,
+    platform: "GOOGLE_PLAY",
+    rawData: review,
+  }));
+
+  return storeAppData(analysisAppId, unifiedAppInfo, unifiedReviews);
 }

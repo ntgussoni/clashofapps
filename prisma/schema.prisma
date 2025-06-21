@@ -84,12 +84,19 @@ model Verification {
   @@map("verification")
 }
 
-// New models for app analysis system
+// New models for app analysis system supporting both Google Play and App Store
 
-// Raw app data from Google Play
+// App platform enum
+enum Platform {
+  GOOGLE_PLAY
+  APP_STORE
+}
+
+// Raw app data from Google Play or App Store
 model App {
-  id         Int    @id @default(autoincrement())
-  appStoreId String @unique // Google Play app ID (e.g., com.example.app)
+  id         Int      @id @default(autoincrement())
+  appStoreId String   // Google Play app ID (com.example.app) or App Store ID (553834731)
+  platform   Platform // Distinguishes between Google Play and App Store
 
   // Core app metadata
   name        String
@@ -107,7 +114,7 @@ model App {
   version   String?
 
   // Complete raw data
-  rawData Json // Complete IAppItemFullDetail as JSON
+  rawData Json // Complete IAppItemFullDetail as JSON (Google Play) or App Store equivalent
 
   // Tracking fields
   lastFetched DateTime @default(now())
@@ -119,12 +126,15 @@ model App {
   analysisApps      AnalysisApp[]
   appAnalysisDataId Int?             @unique
   ComparisonData    ComparisonData[]
+
+  @@unique([appStoreId, platform])
+  @@index([platform])
 }
 
 // Reviews for an app
 model AppReview {
   id       Int    @id @default(autoincrement())
-  reviewId String // Original review ID from Google Play
+  reviewId String // Original review ID from Google Play or App Store
 
   // Review content
   userName  String
@@ -137,7 +147,7 @@ model AppReview {
   version   String?
 
   // Raw data storage
-  rawData Json // Complete IReviewsItem as JSON
+  rawData Json // Complete IReviewsItem as JSON (Google Play) or App Store equivalent
 
   // Relationships
   appId Int
@@ -184,6 +194,7 @@ model AnalysisApp {
   appId      Int?
   app        App?     @relation(fields: [appId], references: [id], onDelete: Cascade)
   appStoreId String
+  platform   Platform // Store the platform for this app
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -191,6 +202,7 @@ model AnalysisApp {
   @@unique([analysisId, appId])
   @@index([analysisId])
   @@index([appId])
+  @@index([platform])
 }
 
 // Single app analysis results

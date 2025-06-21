@@ -2,7 +2,6 @@
 
 https://github.com/user-attachments/assets/f7d3368c-eab0-4b95-99fe-8b88a4f26968
 
-
 Track & Analyze Your App Competitors.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -13,22 +12,24 @@ Track & Analyze Your App Competitors.
 
 ## Overview
 
-Clash of Apps helps you understand your competition in the app stores through data-driven insights. Compare app store listings, analyze reviews, and track market positions across Google Play Store (App Store coming soon)
+Clash of Apps helps you understand your competition in the app stores through data-driven insights. Compare app store listings, analyze reviews, and track market positions across both Google Play Store and Apple App Store.
 
 ## 🌟 Features
 
 ### Available Now
 
-- **App Comparison**: Side-by-side analysis of app store listings, reviews, and ratings
-- **Review Analysis**: AI-powered sentiment analysis of competitor reviews
-- **Analytics Dashboard**: Clean, intuitive interface for viewing insights
+- **Multi-Platform Support**: Analyze apps from both Google Play Store and Apple App Store
+- **Cross-Platform Comparison**: Side-by-side analysis of app store listings, reviews, and ratings across iOS and Android
+- **AI-Powered Review Analysis**: Advanced sentiment analysis of competitor reviews from both platforms
+- **Unified Analytics Dashboard**: Clean, intuitive interface for viewing insights across both stores
+- **Platform Detection**: Automatic detection of app store platform from URLs or app IDs
 
 ### Coming Soon
 
-- **Real-time Tracking**: Monitoring of competitor changes and updates
-- **Custom Alerts**: Notifications for important competitor changes
-- **Historical Data**: Track changes over time
-- **Automated Reports**: Scheduled competitor analysis reports
+- **Real-time Cross-Platform Tracking**: Monitor competitor changes and updates across both stores
+- **Custom Alerts**: Notifications for important competitor changes on any platform
+- **Historical Data**: Track changes over time across iOS and Android
+- **Automated Reports**: Scheduled competitor analysis reports covering both platforms
 
 ## 🚀 Quick Start
 
@@ -65,86 +66,98 @@ Clash of Apps helps you understand your competition in the app stores through da
 4. Initialize the database:
 
    ```bash
-   npm db:push
+   npm run db:generate
+   npm run db:push
    ```
 
-5. Create an admin user:
+5. Start the development server:
 
    ```bash
-   bunx tsx src/scripts/seed-admin.ts
+   npm run dev
    ```
 
-6. Start the development server:
-   ```bash
-   npm dev
-   ```
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Visit `http://localhost:3000` to see your app!
+## � Supported Platforms
 
-## 🛠 Tech Stack
+### Google Play Store
+- App metadata and reviews
+- Competitive analysis
+- Feature extraction
+- Sentiment analysis
+- Market positioning
 
-- **Framework**: [Next.js 14](https://nextjs.org/) with App Router
-- **Database**: [PostgreSQL](https://www.postgresql.org/) with [Prisma ORM](https://www.prisma.io/)
-- **Authentication**: [Better Auth](https://better-auth.com/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [Shadcn/ui](https://ui.shadcn.com/)
-- **State Management**: [TanStack Query](https://tanstack.com/query)
-- **API Layer**: [tRPC](https://trpc.io/)
+### Apple App Store  
+- App information and reviews
+- Cross-platform comparison
+- iOS-specific insights
+- Feature performance tracking
+- User sentiment analysis
 
-## 📦 Project Structure
+## 🔧 Usage
+
+### Analyzing Google Play Store Apps
 
 ```
-.
-├── src/
-│   ├── app/           # Next.js App Router pages
-│   ├── components/    # React components
-│   ├── lib/          # Utility functions
-│   ├── server/       # Server-side code
-│   └── styles/       # Global styles
-├── prisma/           # Database schema and migrations
-├── public/           # Static assets
-└── scripts/         # Utility scripts
+Enter any of these formats:
+- https://play.google.com/store/apps/details?id=com.example.app
+- com.example.app
 ```
 
-## 🔒 Authentication
+### Analyzing Apple App Store Apps
 
-We use Better Auth for secure authentication with the following features:
+```
+Enter any of these formats:
+- https://apps.apple.com/us/app/app-name/id123456789
+- https://itunes.apple.com/us/app/app-name/id123456789  
+- 123456789
+```
 
-- Magic Link Authentication (Production)
-- Email/Password Authentication (Development)
-- Admin User Management
-- Session Management
+The platform automatically detects the store and provides comprehensive analysis.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15, React 18, TypeScript
+- **Styling**: Tailwind CSS, Framer Motion
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Better Auth
+- **Data Sources**: 
+  - Google Play Scraper for Android apps
+  - App Store Scraper for iOS apps
+- **AI Analysis**: OpenAI GPT-4
+- **Deployment**: Vercel
+
+## � Analysis Features
+
+- **Sentiment Analysis**: Understand user sentiment across both platforms
+- **Feature Extraction**: Identify key features mentioned in reviews
+- **Competitive Positioning**: Compare against competitors on both stores
+- **Market Insights**: Gain insights into market trends across iOS and Android
+- **Recommendation Engine**: Get actionable insights for improvement
 
 ## 🤝 Contributing
 
-We love contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
 
 ## 🙏 Acknowledgments
 
-- [T3 Stack](https://create.t3.gg/)
-- [Better Auth](https://better-auth.com/)
-- [Shadcn/ui](https://ui.shadcn.com/)
+- [Google Play Scraper](https://github.com/facundoolano/google-play-scraper) for Android app data
+- [App Store Scraper](https://github.com/facundoolano/app-store-scraper) for iOS app data
+- [OpenAI](https://openai.com/) for AI-powered analysis
+- [Vercel](https://vercel.com/) for hosting and deployment
 
-## Contributors
+## 📞 Support
 
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
+If you have any questions or need help, please:
 
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+1. Check our [Documentation](docs/)
+2. Open an [Issue](https://github.com/yourusername/clash-of-apps/issues)
+3. Join our [Discord Community](https://discord.gg/clashofapps)
 
 ---
 
-Built with ❤️ by https://x.com/ntorresdev
+Built with ❤️ for developers, by developers.
