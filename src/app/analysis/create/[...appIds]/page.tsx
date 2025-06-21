@@ -38,17 +38,11 @@ export default async function AnalysisCreatePage({
 
     // Redirect to the analysis detail page
     redirectUrl = `/analysis/${result.slug}`;
-
-    return (
-      <div>
-        <h1>Redirecting...</h1>
-        <p>Please wait while we redirect you to the analysis page.</p>
-      </div>
-    );
   } catch (error) {
     console.error("Error creating analysis:", error);
     redirectUrl = "/error?message=Failed+to+create+analysis";
   } finally {
+    // Clear the params to avoid infinite loop
     redirect(redirectUrl);
   }
 }
