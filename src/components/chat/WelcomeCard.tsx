@@ -36,7 +36,8 @@ export default function WelcomeCard({ onNewAnalysis }: WelcomeCardProps) {
             <SearchIcon className="mb-2 h-8 w-8 text-primary" />
             <h3 className="font-medium">Search Apps</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Find and select apps to analyze from the Google Play Store
+              Find and select apps to analyze from the Google Play Store or App
+              Store
             </p>
           </div>
 

@@ -14,6 +14,10 @@ const config = {
         protocol: "https",
         hostname: "play-lh.googleusercontent.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.mzstatic.com",
+      },
     ],
   },
 };
