@@ -55,6 +55,11 @@ export async function storeAppData(
   reviews: Review[],
 ): Promise<void> {
   try {
+    // Detect platform from the raw data
+    const platform = (appInfo as any).rawData?.platform || 
+                    (appInfo.appId?.includes('.') ? 'google_play' : 
+                     (/^\d+$/.test(appInfo.appId || '') ? 'app_store' : 'google_play'));
+
     // Store or update app data
     const record = await db.app.upsert({
       where: {
@@ -72,6 +77,7 @@ export async function storeAppData(
         histogram: appInfo.histogram ?? ({} as Prisma.InputJsonValue),
         installs: appInfo.installs,
         version: appInfo.version,
+        platform: platform,
         rawData: appInfo as unknown as Prisma.InputJsonValue,
         lastFetched: new Date(),
       },
@@ -88,6 +94,7 @@ export async function storeAppData(
         histogram: appInfo.histogram ?? ({} as Prisma.InputJsonValue),
         installs: appInfo.installs,
         version: appInfo.version,
+        platform: platform,
         rawData: appInfo as unknown as Prisma.InputJsonValue,
       },
     });

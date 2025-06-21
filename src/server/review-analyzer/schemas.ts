@@ -105,22 +105,10 @@ export const appAnalysisSchema = z.object({
         )
         .describe("Key weaknesses of the app based on reviews"),
       opportunities: z
-        .array(
-          z.object({
-            title: z.string().describe("Opportunity title"),
-            description: z.string().describe("Detailed description"),
-            reviewIds: reviewIdsField,
-          }),
-        )
+        .array(z.string())
         .describe("Potential opportunities for improvement"),
       threats: z
-        .array(
-          z.object({
-            title: z.string().describe("Threat title"),
-            description: z.string().describe("Detailed description"),
-            reviewIds: reviewIdsField,
-          }),
-        )
+        .array(z.string())
         .describe("Competitive threats or external challenges"),
       marketPosition: z.string().describe("Current position in the market"),
       targetDemographic: z.string().describe("Main user demographic"),

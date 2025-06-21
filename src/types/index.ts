@@ -147,18 +147,10 @@ export interface AnalysisResultsData {
     title: string;
     reviewIds: number[];
   }[];
-  opportunities: {
-    title: string;
-    description: string;
-    reviewIds: number[];
-  }[];
+  opportunities: string[];
   marketPosition: string;
   targetDemographic: string;
-  threats: {
-    title: string;
-    description: string;
-    reviewIds: number[];
-  }[];
+  threats: string[];
   keyFeatures: {
     feature: string;
     sentiment: "positive" | "negative" | "neutral" | "mixed";

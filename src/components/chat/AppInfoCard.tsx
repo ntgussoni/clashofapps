@@ -214,11 +214,19 @@ export default function AppCard({
       </div>
 
       <div className="flex items-center justify-between border-t border-gray-100 px-6 pb-6 pt-4">
-        <div className="flex items-center space-x-2">
-          <Shield className="h-4 w-4 text-gray-400" />
-          <span className="text-xs text-gray-500">
-            {rawData?.contentRating ?? "Unknown"}
-          </span>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Shield className="h-4 w-4 text-gray-400" />
+            <span className="text-xs text-gray-500">
+              {rawData?.contentRating ?? "Unknown"}
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="h-1 w-1 rounded-full bg-gray-300"></div>
+            <span className="text-xs text-gray-500">
+              {appInfo.platform === "app_store" ? "App Store" : "Google Play"}
+            </span>
+          </div>
         </div>
         <div
           className={`rounded-full px-3 py-1 text-xs font-medium ${colors.badgeBg} ${colors.badgeText} border ${colors.badgeBorder}`}

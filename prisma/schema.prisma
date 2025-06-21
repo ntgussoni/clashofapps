@@ -86,10 +86,11 @@ model Verification {
 
 // New models for app analysis system
 
-// Raw app data from Google Play
+// Raw app data from app stores (Google Play & App Store)
 model App {
   id         Int    @id @default(autoincrement())
-  appStoreId String @unique // Google Play app ID (e.g., com.example.app)
+  appStoreId String @unique // App store ID (Google Play package name or App Store numeric ID)
+  platform   String @default("google_play") // Platform: "google_play" or "app_store"
 
   // Core app metadata
   name        String
@@ -121,10 +122,10 @@ model App {
   ComparisonData    ComparisonData[]
 }
 
-// Reviews for an app
+// Reviews for an app (from Google Play or App Store)
 model AppReview {
   id       Int    @id @default(autoincrement())
-  reviewId String // Original review ID from Google Play
+  reviewId String // Original review ID from app store
 
   // Review content
   userName  String
@@ -198,12 +199,12 @@ model AppAnalysisData {
   id Int @id @default(autoincrement())
 
   // Core analysis results (matches AnalysisResultsData)
-  strengths         Json // String array
-  weaknesses        Json // String array
-  opportunities     Json // String array
+  strengths         Json // Array of objects with title, description, reviewIds
+  weaknesses        Json // Array of objects with title, description, reviewIds  
+  opportunities     Json // Array of strings
   marketPosition    String @db.Text
   targetDemographic String @db.Text
-  threats           Json // String array
+  threats           Json // Array of strings
   keyFeatures       Json // Array of feature objects matching AppAnalysis.keyFeatures structure
   pricing           Json // Pricing object with valueForMoney, complaints, willingness
   recommendations   Json // Array of recommendation objects

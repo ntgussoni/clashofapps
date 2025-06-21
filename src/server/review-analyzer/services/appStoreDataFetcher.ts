@@ -243,7 +243,7 @@ export async function fetchAppStoreData(
       free: appInfo.free || appInfo.price === 0,
       rawData: {
         ...appInfo,
-        platform: Platform.APP_STORE,
+        platform: "app_store", // Use string instead of enum for database compatibility
         country,
         fetchedAt: new Date().toISOString(),
       },
