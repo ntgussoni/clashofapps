@@ -29,8 +29,8 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
             content={
               <CalculationDetails
                 title="App Performance Metrics"
-                description="These metrics are aggregated from the Google Play Store and represent the overall performance of each app."
-                dataSource="Google Play Store"
+                description="These metrics are aggregated from the Google Play Store or App Store and represent the overall performance of each app."
+                dataSource="Google Play Store or App Store"
                 steps={[
                   {
                     description:
@@ -58,7 +58,7 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
                     content={
                       <CalculationDetails
                         title="App Rating Calculation"
-                        description="The average rating is calculated from all user reviews on the Google Play Store."
+                        description="The average rating is calculated from all user reviews on the Google Play Store or App Store."
                         formula="Sum of all ratings / Number of ratings"
                         example={{
                           inputs: {
@@ -67,7 +67,7 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
                           },
                           result: "4.5 stars",
                         }}
-                        dataSource="Google Play Store"
+                        dataSource="Google Play Store or App Store"
                       />
                     }
                     size="sm"
@@ -80,8 +80,8 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
                     content={
                       <CalculationDetails
                         title="Review Count"
-                        description="The total number of user reviews submitted for this app on the Google Play Store."
-                        dataSource="Google Play Store"
+                        description="The total number of user reviews submitted for this app on the Google Play Store or App Store."
+                        dataSource="Google Play Store or App Store"
                       />
                     }
                     size="sm"
@@ -91,7 +91,7 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {comparisonResults.apps.map((app, i) => (
+              {comparisonResults.reviews.map((app, i) => (
                 <motion.tr
                   key={app.appId}
                   initial={{ opacity: 0, y: 10 }}
@@ -100,29 +100,29 @@ export function KeyMetricsTab({ comparisonResults }: KeyMetricsTabProps) {
                   className="border-b transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                 >
                   <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                    {app.appName}
+                    {app.name}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center">
                       <StarIcon className="mr-1 h-4 w-4 text-amber-500" />
                       <span
                         className={`font-medium ${getRatingColorClass(
-                          Number(app.rating),
+                          app.averageRating,
                         )}`}
                       >
-                        {Number(app.rating).toFixed(1)}
+                        {app.averageRating.toFixed(1)}
                       </span>
                     </div>
                     <div className="mt-1 w-full">
                       <Progress
-                        value={Math.round((Number(app.rating) / 5) * 100)}
+                        value={Math.round((app.averageRating / 5) * 100)}
                         className="h-1.5"
                       />
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="font-medium text-gray-800 dark:text-gray-200">
-                      {app.ratingCount.toLocaleString()}
+                      {app.totalReviews.toLocaleString()}
                     </span>
                   </TableCell>
                 </motion.tr>

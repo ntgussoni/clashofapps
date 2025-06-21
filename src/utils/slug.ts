@@ -88,8 +88,7 @@ export function extractAppIds(
         }
 
         // Look for id in the path
-        for (let i = 0; i < pathParts.length; i++) {
-          const part = pathParts[i];
+        for (const part of pathParts) {
           if (part && part.startsWith("id") && part.length > 2) {
             const appId = part.substring(2); // Remove "id" prefix
             if (/^\d+$/.test(appId)) {
@@ -120,7 +119,7 @@ export function extractAppId(input: string): {
   platform: Platform;
 } {
   const results = extractAppIds([input]);
-  return results[0] || { appId: input, platform: "GOOGLE_PLAY" };
+  return results[0] ?? { appId: input, platform: "GOOGLE_PLAY" };
 }
 
 /**

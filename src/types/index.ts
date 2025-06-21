@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type * as Gplay from "google-play-scraper";
-import type { JSONValue } from "ai";
 import type { App } from "@prisma/client";
 
 // Import schemas from their source files

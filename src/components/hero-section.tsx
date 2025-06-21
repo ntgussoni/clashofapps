@@ -227,7 +227,7 @@ export function HeroSection() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 1.3 }}
               >
-                Analyze any app from Google Play Store in seconds.
+                Analyze any app from Google Play Store or App Store in seconds.
               </motion.div>
             )}
           </div>
