@@ -1,4 +1,7 @@
 import type { AppAnalysis } from "@/types";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import * as appStore from "app-store-scraper";
 
 // Import Prisma types - using a more specific import to avoid module resolution issues
 interface App {
@@ -92,15 +95,17 @@ export enum Platform {
  * @returns The detected platform
  */
 export function detectPlatform(appStoreId: string): Platform {
-  // Google Play package names typically contain dots (com.example.app)
-  // App Store IDs are typically numeric (1234567890) or bundle IDs
-  if (appStoreId.includes(".") && !appStoreId.startsWith("id")) {
-    return Platform.GOOGLE_PLAY;
-  }
-  
-  // App Store numeric IDs or bundle IDs with "id" prefix
+  // App Store numeric IDs (e.g., "553834731") or bundle IDs with "id" prefix
   if (/^\d+$/.test(appStoreId) || appStoreId.startsWith("id")) {
     return Platform.APP_STORE;
+  }
+  
+  // Bundle IDs that don't contain dots are likely App Store (e.g., "com.facebook.Facebook")
+  // But if they do contain dots, they're typically Google Play package names
+  if (appStoreId.includes(".")) {
+    // Check if it's a reverse domain notation (typical for both platforms)
+    // For now, assume Google Play for dotted package names unless specified otherwise
+    return Platform.GOOGLE_PLAY;
   }
   
   // Default to Google Play for now (maintaining backward compatibility)
@@ -160,12 +165,7 @@ export function normalizeAppStoreReviews(reviews: AppStoreReview[]): Partial<App
 }
 
 /**
- * Fetch App Store app data and reviews
- * Note: This is a placeholder implementation. In production, you would:
- * 1. Use the official App Store Connect API (requires Apple Developer account)
- * 2. Use third-party services like AppTweak, SensorTower, or App Annie
- * 3. Implement web scraping (be careful of rate limits and ToS)
- * 
+ * Fetch App Store app data and reviews using the app-store-scraper library
  * @param appStoreId - App Store app ID (numeric or bundle ID)
  * @param options - Fetch options
  * @returns App store data and reviews
@@ -183,59 +183,95 @@ export async function fetchAppStoreData(
   try {
     console.log(`Fetching App Store data for: ${appStoreId}`);
     
-    // TODO: Implement actual App Store data fetching
-    // For now, return mock data to demonstrate the structure
+    // Fetch app information using app-store-scraper
+    const appInfo = await appStore.app({
+      id: appStoreId,
+      country: country,
+    });
+
+    // Fetch reviews using app-store-scraper
+    let allReviews: any[] = [];
+    const reviewPages = Math.ceil(Math.min(reviewCount, 500) / 50); // Max 50 reviews per page, limit to 500 total
     
-    // This is where you would implement one of the following:
-    // 1. App Store Connect API integration
-    // 2. Third-party service integration (AppTweak, SensorTower, etc.)
-    // 3. iTunes Search API for basic app info + review scraping
-    
-    // Mock data for demonstration
-    const mockAppInfo: AppStoreAppInfo = {
-      appId: appStoreId,
-      bundleId: `com.example.${appStoreId}`,
-      name: `App Store App ${appStoreId}`,
-      icon: "https://via.placeholder.com/512x512",
-      developer: "Example Developer",
-      categories: [{ name: "Productivity", id: "productivity" }],
-      description: "This is a placeholder description for the App Store app. In production, this would contain the actual app description from the App Store.",
-      score: 4.2,
-      ratings: 1250,
-      reviews: 320,
-      histogram: { "1": 15, "2": 30, "3": 85, "4": 420, "5": 700 },
-      installs: "10K+",
-      version: "2.1.0",
-      price: "$2.99",
-      currency: "USD",
-      free: false,
+    for (let page = 1; page <= Math.min(reviewPages, 10); page++) {
+      try {
+        const reviewsResult = await appStore.reviews({
+          id: appStoreId,
+          country: country,
+          page: page,
+          sort: appStore.sort.RECENT,
+        });
+        
+        allReviews = allReviews.concat(reviewsResult);
+        
+        if (reviewsResult.length < 50) {
+          // Less than full page, probably no more reviews
+          break;
+        }
+        
+        if (allReviews.length >= reviewCount) {
+          break;
+        }
+        
+        // Add a small delay between requests to be respectful
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (reviewError) {
+        console.warn(`Could not fetch reviews page ${page} for ${appStoreId}:`, reviewError);
+        if (page === 1) {
+          // If first page fails, still continue with app info
+          break;
+        }
+      }
+    }
+
+    // Convert to our normalized format
+    const normalizedAppInfo: AppStoreAppInfo = {
+      appId: appInfo.id?.toString() || appStoreId,
+      bundleId: appInfo.bundleId || appInfo.appId || appStoreId,
+      name: appInfo.title || appInfo.trackName || `App ${appStoreId}`,
+      icon: appInfo.icon || appInfo.artworkUrl512 || appInfo.artworkUrl100 || "",
+      developer: appInfo.developer || appInfo.artistName || "Unknown Developer",
+      categories: appInfo.genres ? appInfo.genres.map((genre: string) => ({ name: genre, id: genre.toLowerCase() })) : [],
+      description: appInfo.description || "",
+      score: appInfo.score || appInfo.averageUserRating,
+      ratings: appInfo.reviews || appInfo.userRatingCount,
+      reviews: allReviews.length,
+      histogram: appInfo.histogram,
+      version: appInfo.version,
+      price: appInfo.price || appInfo.formattedPrice,
+      currency: appInfo.currency,
+      free: appInfo.free || appInfo.price === 0,
       rawData: {
+        ...appInfo,
         platform: Platform.APP_STORE,
         country,
         fetchedAt: new Date().toISOString(),
       },
     };
 
-    const mockReviews: AppStoreReview[] = Array.from({ length: Math.min(reviewCount, 50) }, (_, i) => ({
-      id: `appstore_review_${i + 1}`,
-      userName: `AppStore User ${i + 1}`,
-      date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-      score: Math.floor(Math.random() * 5) + 1,
-      title: `Review Title ${i + 1}`,
-      text: `This is a sample review text for the App Store app. Review number ${i + 1}. The app has various features that users appreciate.`,
-      version: "2.1.0",
+    // Convert reviews to our format
+    const normalizedReviews: AppStoreReview[] = allReviews.slice(0, reviewCount).map((review, index) => ({
+      id: review.id || `appstore_review_${index}`,
+      userName: review.userName || review.title || "Anonymous",
+      userImage: review.userImage,
+      date: review.updated || review.date || new Date().toISOString(),
+      score: review.score || 3,
+      title: review.title,
+      text: review.text || review.review || "",
+      version: review.version,
       rawData: {
+        ...review,
         platform: Platform.APP_STORE,
         country,
         fetchedAt: new Date().toISOString(),
       },
     }));
 
-    console.log(`Successfully fetched App Store data for ${appStoreId}: ${mockReviews.length} reviews`);
+    console.log(`Successfully fetched App Store data for ${appStoreId}: ${normalizedReviews.length} reviews`);
 
     return {
-      appInfo: mockAppInfo,
-      reviews: mockReviews,
+      appInfo: normalizedAppInfo,
+      reviews: normalizedReviews,
     };
 
   } catch (error) {
