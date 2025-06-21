@@ -7,11 +7,33 @@ const nanoid = customAlphabet("abcdefghijkmnopqrstuvwxyz0123456789", 6);
 
 /**
  * Generate a unique slug for an analysis based on app IDs
- * @param appIds - List of app IDs to include in the slug
+ * @param appStoreIds - List of app IDs or URLs to include in the slug
  */
 export function generateAnalysisSlug(appStoreIds: string[]): string {
-  // Default base slug if we can't extract from app IDs
-  const baseSlug = slugify(appStoreIds.join("-"), {
+  // Extract just the numeric/clean IDs from URLs or use IDs directly
+  const appIds = appStoreIds.map(id => {
+    // If it's already a clean numeric ID, use it
+    if (/^\d+$/.test(id)) return id;
+    
+    // If it's a Google Play package name, use it
+    if (/^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)*$/i.test(id)) return id;
+    
+    // Otherwise extract from URL
+    try {
+      const { appId } = extractAppId(id);
+      return appId;
+    } catch {
+      // Fallback: try to extract app name from URL path for readability
+      const urlMatch = id.match(/\/app\/([^\/]+)\//);
+      if (urlMatch?.[1]) {
+        return urlMatch[1];
+      }
+      // Last resort: use a short hash of the original
+      return id.slice(-8);
+    }
+  });
+  
+  const baseSlug = slugify(appIds.join("-"), {
     lower: true,
     replacement: "-",
     trim: true,
