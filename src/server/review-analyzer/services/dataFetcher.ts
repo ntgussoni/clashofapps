@@ -3,6 +3,13 @@
 import gplay from "google-play-scraper";
 import type * as Gplay from "google-play-scraper";
 import { type AppInfo, type Review } from "@/types";
+import { 
+  detectPlatform, 
+  Platform, 
+  fetchAppStoreData,
+  normalizeAppStoreData,
+  normalizeAppStoreReviews 
+} from "./appStoreDataFetcher";
 
 const googlePlayScraper = gplay as unknown as Gplay.IMemoizedResult;
 

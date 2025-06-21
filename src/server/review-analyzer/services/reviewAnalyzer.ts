@@ -15,7 +15,7 @@ export type AnalysisUpdate = {
   data?: Record<string, unknown>;
 };
 
-// Schemas for AI-generated analysis results
+// Schemas for AI-generated analysis results - now using unified structure
 const strengthWeaknessSchema = z
   .object({
     strengths: z
@@ -52,10 +52,8 @@ const strengthWeaknessSchema = z
 const sentimentAnalysisSchema = z
   .object({
     overall: z
-      .enum(["positive", "negative", "neutral", "mixed"])
-      .describe(
-        "Overall sentiment assessment (positive/negative/neutral/mixed)",
-      ),
+      .string()
+      .describe("Overall sentiment summary description"),
     positive: z
       .array(z.string())
       .default([])
@@ -74,7 +72,7 @@ const sentimentAnalysisSchema = z
       .describe("Mixed or unclear sentiment mentioned in reviews"),
     reviewMap: z
       .record(
-        z.enum(["positive", "negative", "neutral", "mixed"]), // sentiment type (positive, negative, neutral, mixed)
+        z.string(), // sentiment type (positive, negative, neutral, mixed)
         z.array(z.number()), // array of review IDs
       )
       .describe("Mapping of sentiment types to review IDs")

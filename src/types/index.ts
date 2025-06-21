@@ -3,15 +3,16 @@ import type * as Gplay from "google-play-scraper";
 import type { JSONValue } from "ai";
 import type { App } from "@prisma/client";
 
-// Import schemas from their source files
+// Import schemas from their source files - now using unified schemas
 import { type sentimentSchema } from "./sentiment-schema";
 import { type reviewInsightSchema } from "./review-schema";
-import { type competitorAnalysisSchema } from "@/app/api/chat/analysisSchemas";
+import { type competitorAnalysisSchema, type appAnalysisSchema } from "@/server/review-analyzer/schemas";
 
 // Schema-based types
 export type SentimentType = z.infer<typeof sentimentSchema>;
 export type ReviewInsightType = z.infer<typeof reviewInsightSchema>;
 export type CompetitorAnalysis = z.infer<typeof competitorAnalysisSchema>;
+export type AppAnalysisSchema = z.infer<typeof appAnalysisSchema>;
 
 // ----------------------------------------------------------------------
 // Google Play Scraper Types (External Types)
@@ -146,10 +147,18 @@ export interface AnalysisResultsData {
     title: string;
     reviewIds: number[];
   }[];
-  opportunities: string[];
+  opportunities: {
+    title: string;
+    description: string;
+    reviewIds: number[];
+  }[];
   marketPosition: string;
   targetDemographic: string;
-  threats: string[];
+  threats: {
+    title: string;
+    description: string;
+    reviewIds: number[];
+  }[];
   keyFeatures: {
     feature: string;
     sentiment: "positive" | "negative" | "neutral" | "mixed";
@@ -213,55 +222,8 @@ export interface ComparisonResultsData {
 // Zod Schema Types
 // ----------------------------------------------------------------------
 
-// Define a more complete AppAnalysis type to match the schema
-export interface AppAnalysis {
-  appName: string;
-  strengths: {
-    description: string;
-    title: string;
-    reviewIds: number[];
-  }[];
-  weaknesses: {
-    description: string;
-    title: string;
-    reviewIds: number[];
-  }[];
-  sentiment: {
-    neutral: string[];
-    overall: string;
-    positive: string[];
-    negative: string[];
-    mixed: string[];
-    reviewMap: Record<string, number[]>;
-  };
-  keyFeatures: {
-    feature: string;
-    sentiment: "positive" | "negative" | "neutral" | "mixed";
-    description: string;
-    reviewIds: number[];
-  }[];
-  overview: {
-    strengths: string[];
-    weaknesses: string[];
-    opportunities: string[];
-    threats: string[];
-    marketPosition: string;
-    targetDemographic: string;
-  };
-  pricingPerception: {
-    valueForMoney: number;
-    pricingComplaints: number;
-    willingness: string;
-    reviewIds: number[];
-  };
-  recommendedActions: {
-    action: string;
-    priority: string;
-    impact: string;
-    timeframe?: string;
-    targetSegment?: string;
-  }[];
-}
+// Use schema-inferred type for consistency
+export type AppAnalysis = AppAnalysisSchema;
 
 // Action plan and recommendation schemas
 export const actionStepSchema = z.object({
