@@ -23,9 +23,9 @@ export function FeaturesSection() {
               App Review Analysis Platform
             </h2>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Our platform analyzes Google Play Store app reviews, helping
-              developers and product managers identify strengths, weaknesses,
-              and opportunities for improvement.
+              Our platform analyzes Google Play Store and App Store app reviews,
+              helping developers and product managers identify strengths,
+              weaknesses, and opportunities for improvement.
             </p>
           </div>
         </div>
