@@ -81,6 +81,19 @@ export interface AppStoreDataResult {
   reviews: AppStoreReview[];
 }
 
+interface RawAppStoreReview {
+  id?: string;
+  userName?: string;
+  userImage?: string;
+  updated?: string;
+  date?: string;
+  score?: number;
+  title?: string;
+  text?: string;
+  review?: string;
+  version?: string;
+}
+
 /**
  * Platform identifier for data fetching
  */
@@ -190,7 +203,7 @@ export async function fetchAppStoreData(
     });
 
     // Fetch reviews using app-store-scraper
-    let allReviews: any[] = [];
+    let allReviews: RawAppStoreReview[] = [];
     const reviewPages = Math.ceil(Math.min(reviewCount, 500) / 50); // Max 50 reviews per page, limit to 500 total
     
     for (let page = 1; page <= Math.min(reviewPages, 10); page++) {
@@ -251,13 +264,13 @@ export async function fetchAppStoreData(
 
     // Convert reviews to our format
     const normalizedReviews: AppStoreReview[] = allReviews.slice(0, reviewCount).map((review, index) => ({
-      id: review.id || `appstore_review_${index}`,
-      userName: review.userName || review.title || "Anonymous",
+      id: review.id ?? `appstore_review_${index}`,
+      userName: review.userName ?? review.title ?? "Anonymous",
       userImage: review.userImage,
-      date: review.updated || review.date || new Date().toISOString(),
-      score: review.score || 3,
+      date: review.updated ?? review.date ?? new Date().toISOString(),
+      score: review.score ?? 3,
       title: review.title,
-      text: review.text || review.review || "",
+      text: review.text ?? review.review ?? "",
       version: review.version,
       rawData: {
         ...review,
@@ -289,10 +302,28 @@ export async function fetchAppStoreData(
  * @param country - Country code
  * @returns Basic app information from iTunes Search API
  */
+interface ITunesAppData {
+  trackId?: number;
+  bundleId: string;
+  trackName: string;
+  artworkUrl512?: string;
+  artworkUrl100?: string;
+  artistName: string;
+  primaryGenreName: string;
+  primaryGenreId?: number;
+  description?: string;
+  averageUserRating?: number;
+  userRatingCount?: number;
+  version: string;
+  formattedPrice: string;
+  currency: string;
+  price: number;
+}
+
 export async function getITunesAppInfo(
   appStoreId: string, 
   country: string = "us"
-): Promise<any> {
+): Promise<ITunesAppData> {
   try {
     const response = await fetch(
       `https://itunes.apple.com/lookup?id=${appStoreId}&country=${country}`
@@ -320,26 +351,26 @@ export async function getITunesAppInfo(
  * @param itunesData - Data from iTunes Search API
  * @returns Normalized app data
  */
-export function convertITunesDataToAppStoreInfo(itunesData: any): AppStoreAppInfo {
+export function convertITunesDataToAppStoreInfo(itunesData: ITunesAppData): AppStoreAppInfo {
   return {
-    appId: itunesData.trackId?.toString() || itunesData.bundleId,
+    appId: itunesData.trackId?.toString() ?? itunesData.bundleId,
     bundleId: itunesData.bundleId,
     name: itunesData.trackName,
-    icon: itunesData.artworkUrl512 || itunesData.artworkUrl100,
+    icon: itunesData.artworkUrl512 ?? itunesData.artworkUrl100 ?? "",
     developer: itunesData.artistName,
     categories: [
       { 
         name: itunesData.primaryGenreName, 
-        id: itunesData.primaryGenreId?.toString() 
+        id: itunesData.primaryGenreId?.toString() ?? null
       }
     ],
-    description: itunesData.description || "",
+    description: itunesData.description ?? "",
     score: itunesData.averageUserRating,
     ratings: itunesData.userRatingCount,
     version: itunesData.version,
     price: itunesData.formattedPrice,
     currency: itunesData.currency,
     free: itunesData.price === 0,
-    rawData: itunesData,
+    rawData: itunesData as unknown as Record<string, unknown>,
   };
 }

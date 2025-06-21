@@ -3,6 +3,7 @@
 import gplay from "google-play-scraper";
 import type * as Gplay from "google-play-scraper";
 import { type AppInfo, type Review } from "@/types";
+import type { AppReview } from "@prisma/client";
 import { 
   detectPlatform, 
   Platform, 
@@ -145,7 +146,7 @@ async function fetchAppStoreDataUnified(
     }
   } as AppInfo;
 
-  const reviews = normalizedReviews.map((review: any, index) => ({
+  const reviews = normalizedReviews.map((review: Partial<AppReview>, index) => ({
     id: review.reviewId || `review_${index}`,
     userName: review.userName || 'Anonymous',
     userImage: review.userImage,
