@@ -55,7 +55,7 @@
     "@trpc/server": "^11.0.0-rc.446",
     "@types/uuid": "^10.0.0",
     "@vercel/otel": "^1.10.1",
-    "ai": "^4.1.47",
+    "ai": "^5.0.43",
     "autoprefixer": "^10.4.20",
     "better-auth": "^1.2.1",
     "class-variance-authority": "^0.7.1",
